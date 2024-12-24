@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Dot List</string>
+    <string name="dot_list">Dot List</string>
+    <string name="add_task_hint">Add a new task</string>
+    <string name="add_button_text">Add</string>
+    <string name="pre_written_text">Enter Your Task</string>
+</resources>
