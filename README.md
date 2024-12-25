@@ -1,5 +1,8 @@
 # **Dot-List**
 
+**Dot-List** is a basic to-do list Android app created for practicing app development and enhancing user interaction through new UI features.
+
+
 **Dot-List** is a simple and intuitive Android to-do list application designed to help 
 users organize and track their tasks effectively. Built using Java, it allows users to add tasks, 
 mark them as completed with a tick button, and stay focused on their goals.
