@@ -41,17 +41,22 @@ public class DBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 2) { // Check if the database version is less than 2
+        if (oldVersion < 2) { // Add 'filePath' column in version 2
             db.execSQL("ALTER TABLE " + TABLE_TASKS + " ADD COLUMN filePath TEXT");
+        }
+        if (oldVersion < 3) { // Future updates should follow similar checks
+            // Example: Adding a new column for timestamps
+            db.execSQL("ALTER TABLE " + TABLE_TASKS + " ADD COLUMN timestamp DATETIME DEFAULT CURRENT_TIMESTAMP");
         }
     }
 
     // Insert Task
-    public void insertTask(String title, boolean isDone) {
+    public void insertTask(String title, boolean isDone, String filePath) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_TITLE, title);
         values.put(COLUMN_IS_DONE, isDone ? 1 : 0);
+        values.put("filePath", filePath);
         db.insert(TABLE_TASKS, null, values);
         db.close();
     }
@@ -85,7 +90,8 @@ public class DBHelper extends SQLiteOpenHelper {
                 int id = cursor.getInt(0);
                 String title = cursor.getString(1);
                 boolean isDone = cursor.getInt(2) == 1;
-                taskList.add(new Task(id, title, isDone));
+                String filePath = cursor.getString(3);
+                taskList.add(new Task(id, title, isDone, filePath));
             } while (cursor.moveToNext());
         }
         cursor.close();
@@ -96,7 +102,7 @@ public class DBHelper extends SQLiteOpenHelper {
     // Clear All Tasks
     public void clearAllTasks() {
         SQLiteDatabase db = this.getWritableDatabase();
-        db.execSQL("DELETE FROM " + TABLE_TASKS);
+        db.delete(TABLE_TASKS, null, null);
         db.close();
     }
 }

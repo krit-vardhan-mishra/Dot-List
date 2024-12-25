@@ -6,13 +6,15 @@ public class Task {
     private String title;
     private boolean isCompleted;
     private TaskDetails details;
+    private String filePath;
 
     // Constructor for database integration (with ID)
-    public Task(int id, String title, boolean isCompleted) {
+    public Task(int id, String title, boolean isCompleted, String filePath) {
         this.id = id;
         this.title = title;
         this.isCompleted = isCompleted;
         this.details = new TaskDetails(); // Initialize TaskDetails object
+        this.filePath = filePath;
     }
 
     // Constructor for existing tasks with details (loaded from DB)
@@ -62,5 +64,13 @@ public class Task {
 
     public void setDetails(TaskDetails details) {
         this.details = details;
+    }
+
+    public String getFilePath() {
+        return filePath;
+    }
+
+    public  void setFilePath(String filePath) {
+        this.filePath = filePath;
     }
 }

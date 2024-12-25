@@ -4,4 +4,6 @@
     <string name="add_task_hint">Add a new task</string>
     <string name="add_button_text">Add</string>
     <string name="pre_written_text">Enter Your Task</string>
+    <string name="upload">Upload</string>
+    <string name="checked_file_icon">File attached successfully</string>
 </resources>

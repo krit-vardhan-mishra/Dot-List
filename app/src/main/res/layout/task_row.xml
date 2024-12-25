@@ -18,13 +18,24 @@
         android:inputType="text"
         android:hint="@string/pre_written_text" />
 
-    <ImageView
-        android:id="@+id/attachmentIcon"
+    <ImageButton
+        android:id="@+id/uploadButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/ic_attach_file"
-        android:onClick="onFileAttached"
-        android:visibility="gone"/>
+        android:src="@drawable/upload_icon"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/upload"
+        android:padding="8dp" />
+
+    <ImageView
+        android:id="@+id/checkMarkIcon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_check"
+        android:visibility="gone"
+        android:contentDescription="@string/checked_file_icon"
+        android:padding="4dp"/> <!-- Adding padding -->
+
 
     <TextView
         android:id="@+id/taskDetailsTextView"

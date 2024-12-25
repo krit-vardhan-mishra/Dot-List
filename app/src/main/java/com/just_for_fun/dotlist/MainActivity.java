@@ -1,6 +1,5 @@
 package com.just_for_fun.dotlist;
 
-import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
@@ -10,11 +9,14 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -22,6 +24,8 @@ public class MainActivity extends AppCompatActivity {
     private int currentCapacity = 5;
     private final List<Task> tasks = new ArrayList<>();
     private DBHelper dbHelper;
+    private ActivityResultLauncher<String> pickPdfLauncher;
+    private View lastClickedView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +34,15 @@ public class MainActivity extends AppCompatActivity {
 
         dbHelper = new DBHelper(this);
         taskContainer = findViewById(R.id.taskContainer);
+
+        pickPdfLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                uri -> {
+                    if (uri != null) {
+                        handleFileAttachment(uri);
+                    }
+                }
+        );
 
         // Load Tasks for Database
         loadTasksFromDatabase();
@@ -43,7 +56,27 @@ public class MainActivity extends AppCompatActivity {
         addTextWatchersToTasks();
     }
 
+    private void handleFileAttachment(Uri uri) {
+        int taskIndex = getTaskIndexFromView(lastClickedView);
+        Task task = getTaskAtIndex(taskIndex);
+
+        if (task == null) return;
+
+        task.getDetails().setFilePath(uri.toString());
+
+        View row = taskContainer.getChildAt(taskIndex);
+        ImageView uploadButton = row.findViewById(R.id.uploadButton);
+        TextView taskDetailsTextView = row.findViewById(R.id.taskDetailsTextView);
+        uploadButton.setImageResource(R.drawable.ic_check);
+        taskDetailsTextView.setVisibility(View.VISIBLE);
+        taskDetailsTextView.setText("Attached: " + uri.getLastPathSegment());
+
+        dbHelper.updateTask(task.getId(), task.isCompleted(), task.getDetails().getFilePath());
+    }
+
+
     private void loadTasksFromDatabase() {
+        tasks.clear();
         List<Task> savedTasks = dbHelper.getAllTasks();
         for (Task task : savedTasks) {
             addTaskToUI(task);
@@ -55,9 +88,12 @@ public class MainActivity extends AppCompatActivity {
         View row = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
         EditText editText = row.findViewById(R.id.taskEditText);
         CheckBox checkBox = row.findViewById(R.id.taskCheckbox);
+        ImageView uploadButton = row.findViewById(R.id.uploadButton);
 
         editText.setText(task.getTitle());
         checkBox.setChecked(task.isCompleted());
+
+        row.setOnClickListener(v -> lastClickedView = v);
 
         checkBox.setOnCheckedChangeListener(((buttonView, isChecked) -> {
             task.setCompleted(isChecked);
@@ -83,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void afterTextChanged(Editable s) {}
             });
+
         }
     }
 
@@ -99,22 +136,28 @@ public class MainActivity extends AppCompatActivity {
         double fillPercentage = (double) filledBoxes / currentCapacity * 100;
         if (fillPercentage >= 80) {
             // Double the capacity
-            currentCapacity *= 2;
+            int newCapacity = currentCapacity * 2;
             for (int i = 0; i < currentCapacity - taskContainer.getChildCount(); i++) {
-                taskContainer.addView(getLayoutInflater().inflate(R.layout.task_row, taskContainer, false));
+                View row = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
+                addTextWatchersToTasks();
+                taskContainer.addView(row);
             }
             addTextWatchersToTasks();
         }
     }
 
     private void addNewTaskRow() {
+        for (Task task : tasks) { // Prevent duplicates
+            if (task.getTitle().isEmpty()) return;
+        }
+
         View row = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
         EditText editText = row.findViewById(R.id.taskEditText);
         CheckBox checkBox = row.findViewById(R.id.taskCheckbox);
 
         checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             Task newTask = new Task(editText.getText().toString(), isChecked);
-            dbHelper.insertTask(newTask.getTitle(), isChecked);
+            dbHelper.insertTask(newTask.getTitle(), isChecked, null);
             tasks.add(newTask);
         });
 
@@ -123,36 +166,10 @@ public class MainActivity extends AppCompatActivity {
 
     // Handle file attachment
     public void onFileAttached(View view) {
-        int taskIndex = getTaskIndexFromView(view);
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("application/pdf");
-        startActivityForResult(intent, taskIndex);
+        lastClickedView = view;
+        pickPdfLauncher.launch("application/pdf"); // Launch PDF picker
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if (resultCode == RESULT_OK && data != null) {
-            Uri selectedFileUri = data.getData();
-            Task task = getTaskAtIndex(requestCode);
-
-            if (task != null) {
-                task.getDetails().setFilePath(selectedFileUri.toString());
-
-                // Update the UI to indicate file attachment
-                View row = taskContainer.getChildAt(requestCode);
-                try {
-                    ImageView attachmentIcon = row.findViewById(R.id.attachmentIcon);
-                    attachmentIcon.setVisibility(View.VISIBLE); // Show the icon
-                } catch (NoSuchElementException e) {
-                    e.printStackTrace();
-                }
-                dbHelper.updateTask(task.getId(), task.isCompleted(), task.getDetails().getFilePath());
-            }
-            // TODO: Update UI to indicate file attachment.
-        }
-    }
 
     private int getTaskIndexFromView(View view) {
         LinearLayout parentRow = (LinearLayout) view.getParent();
