@@ -18,4 +18,19 @@
         android:inputType="text"
         android:hint="@string/pre_written_text" />
 
+    <ImageView
+        android:id="@+id/attachmentIcon"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/ic_attach_file"
+        android:onClick="onFileAttached"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/taskDetailsTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:padding="10dp" />
+
 </LinearLayout>
