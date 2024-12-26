@@ -6,4 +6,6 @@
     <string name="pre_written_text">Enter Your Task</string>
     <string name="upload">Upload</string>
     <string name="checked_file_icon">File attached successfully</string>
+    <string name="preview">Preview File</string>
+    <string name="down_arrow">Down Arrow</string>
 </resources>

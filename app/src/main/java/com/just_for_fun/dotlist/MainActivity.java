@@ -1,5 +1,7 @@
 package com.just_for_fun.dotlist;
 
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
@@ -10,11 +12,14 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
         dbHelper = new DBHelper(this);
         taskContainer = findViewById(R.id.taskContainer);
 
+        // Register the PDF picker launcher
         pickPdfLauncher = registerForActivityResult(
                 new ActivityResultContracts.GetContent(),
                 uri -> {
@@ -67,13 +73,16 @@ public class MainActivity extends AppCompatActivity {
         View row = taskContainer.getChildAt(taskIndex);
         ImageView uploadButton = row.findViewById(R.id.uploadButton);
         TextView taskDetailsTextView = row.findViewById(R.id.taskDetailsTextView);
+        ImageView previewButton = row.findViewById(R.id.previewButton);
+
         uploadButton.setImageResource(R.drawable.ic_check);
         taskDetailsTextView.setVisibility(View.VISIBLE);
         taskDetailsTextView.setText("Attached: " + uri.getLastPathSegment());
 
+        previewButton.setOnClickListener(v -> openPdfPreview(uri));
+
         dbHelper.updateTask(task.getId(), task.isCompleted(), task.getDetails().getFilePath());
     }
-
 
     private void loadTasksFromDatabase() {
         tasks.clear();
@@ -88,12 +97,29 @@ public class MainActivity extends AppCompatActivity {
         View row = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
         EditText editText = row.findViewById(R.id.taskEditText);
         CheckBox checkBox = row.findViewById(R.id.taskCheckbox);
-        ImageView uploadButton = row.findViewById(R.id.uploadButton);
+        ImageView downArrow = row.findViewById(R.id.downArrow);
+        ImageView previewIcon = row.findViewById(R.id.previewIcon);
 
         editText.setText(task.getTitle());
         checkBox.setChecked(task.isCompleted());
 
         row.setOnClickListener(v -> lastClickedView = v);
+
+        downArrow.setOnClickListener(v -> {
+            TextView taskDetailsTextView = row.findViewById(R.id.taskDetailsTextView);
+            if (taskDetailsTextView.getVisibility() == View.VISIBLE) {
+                taskDetailsTextView.setVisibility(View.GONE);
+            } else {
+                taskDetailsTextView.setVisibility(View.VISIBLE);
+            }
+        });
+
+        if (task.getFilePath() != null && !task.getFilePath().isEmpty()) {
+            previewIcon.setVisibility(View.VISIBLE);
+            previewIcon.setOnClickListener(v -> openPDFWithSystemViewer(task.getFilePath()));
+        } else {
+            previewIcon.setVisibility(View.GONE);
+        }
 
         checkBox.setOnCheckedChangeListener(((buttonView, isChecked) -> {
             task.setCompleted(isChecked);
@@ -101,6 +127,41 @@ public class MainActivity extends AppCompatActivity {
         }));
 
         taskContainer.addView(row);
+    }
+
+    private void openPDFWithSystemViewer(String filePath) {
+        File file = new File(filePath);
+
+        if (file.exists()) {
+            Uri uri = FileProvider.getUriForFile(
+                    this,
+                    getApplicationContext().getPackageName() + ".fileprovider",
+                    new File(filePath)
+            );
+
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setDataAndType(uri, "application/pdf");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            try {
+                startActivity(intent);
+            } catch (ActivityNotFoundException e) {
+                Toast.makeText(this, "No PDF Viewer Found", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            Toast.makeText(this, "File not found!", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void openPdfPreview(Uri uri) {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, "application/pdf");
+        intent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "No PDF viewer installed", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void addTextWatchersToTasks() {
@@ -145,31 +206,6 @@ public class MainActivity extends AppCompatActivity {
             addTextWatchersToTasks();
         }
     }
-
-    private void addNewTaskRow() {
-        for (Task task : tasks) { // Prevent duplicates
-            if (task.getTitle().isEmpty()) return;
-        }
-
-        View row = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
-        EditText editText = row.findViewById(R.id.taskEditText);
-        CheckBox checkBox = row.findViewById(R.id.taskCheckbox);
-
-        checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            Task newTask = new Task(editText.getText().toString(), isChecked);
-            dbHelper.insertTask(newTask.getTitle(), isChecked, null);
-            tasks.add(newTask);
-        });
-
-        taskContainer.addView(row);
-    }
-
-    // Handle file attachment
-    public void onFileAttached(View view) {
-        lastClickedView = view;
-        pickPdfLauncher.launch("application/pdf"); // Launch PDF picker
-    }
-
 
     private int getTaskIndexFromView(View view) {
         LinearLayout parentRow = (LinearLayout) view.getParent();
