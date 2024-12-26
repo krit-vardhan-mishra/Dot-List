@@ -1,5 +1,6 @@
 package com.just_for_fun.dotlist;
 
+import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.net.Uri;
@@ -10,6 +11,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -17,6 +19,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 
@@ -73,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
         taskContainer.removeAllViews();
     }
 
+    @SuppressLint("SetTextI18n")
     private void handleFileAttachment(Uri uri) {
         int taskIndex = getTaskIndexFromView(lastClickedView);
         Task task = getTaskAtIndex(taskIndex);
@@ -103,38 +107,67 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private void addTaskToUI(Task task) {
         View row = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
         EditText editText = row.findViewById(R.id.taskEditText);
         CheckBox checkBox = row.findViewById(R.id.taskCheckbox);
         ImageView downArrow = row.findViewById(R.id.downArrow);
         ImageView previewIcon = row.findViewById(R.id.previewIcon);
+        ImageButton uploadButton = row.findViewById(R.id.uploadButton);
+        LinearLayout notesLayout = row.findViewById(R.id.notesLayout);
 
-        editText.setText(task.getTitle());
+        editText.setText("Enter Task");
         checkBox.setChecked(task.isCompleted());
+
+        editText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (!s.toString().isEmpty()) {
+                    downArrow.setVisibility(View.VISIBLE);
+                } else {
+                    downArrow.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) { }
+        });
 
         row.setOnClickListener(v -> lastClickedView = v);
 
         downArrow.setOnClickListener(v -> {
-            TextView taskDetailsTextView = row.findViewById(R.id.taskDetailsTextView);
-            if (taskDetailsTextView.getVisibility() == View.VISIBLE) {
-                taskDetailsTextView.setVisibility(View.GONE);
-            } else {
-                taskDetailsTextView.setVisibility(View.VISIBLE);
-            }
+            notesLayout.setVisibility(notesLayout.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE);
         });
 
-        if (task.getFilePath() != null && !task.getFilePath().isEmpty()) {
-            previewIcon.setVisibility(View.VISIBLE);
-            previewIcon.setOnClickListener(v -> openPDFWithSystemViewer(task.getFilePath()));
-        } else {
-            previewIcon.setVisibility(View.GONE);
-        }
+        uploadButton.setOnClickListener(v -> {
+            lastClickedView = row;
+            pickPdfLauncher.launch("application/pdf");
+        });
+
+        previewIcon.setOnClickListener(v -> openPDFWithSystemViewer(task.getFilePath()));
 
         checkBox.setOnCheckedChangeListener(((buttonView, isChecked) -> {
             task.setCompleted(isChecked);
             dbHelper.updateTask(task.getId(), isChecked, task.getDetails().getFilePath());
         }));
+
+        editText.setOnClickListener(v -> {
+            if (!editText.hasFocus() && editText.getText().toString().trim().isEmpty()) {
+                new AlertDialog.Builder(this)
+                        .setTitle("Delete Task")
+                        .setMessage("Do you want to delete this task?")
+                        .setPositiveButton("Yes", (dialog, which) -> {
+                            taskContainer.removeView(row);
+                            dbHelper.deleteTask(task.getId());
+                        })
+                        .setNegativeButton("No", null)
+                        .show();
+            }
+        });
 
         taskContainer.addView(row);
     }
@@ -146,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
             Uri uri = FileProvider.getUriForFile(
                     this,
                     getApplicationContext().getPackageName() + ".fileprovider",
-                    new File(filePath)
+                    file
             );
 
             Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -181,6 +214,8 @@ public class MainActivity extends AppCompatActivity {
             final int position = i;
 
             editText.addTextChangedListener(new TextWatcher() {
+                private boolean isEditing = false;
+
                 @Override
                 public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
@@ -192,30 +227,48 @@ public class MainActivity extends AppCompatActivity {
                         Task task = getTaskAtIndex(position);
 
                         if (task == null) {
-                            task = new Task(-1, text, false, (String) null);
+                            task = new Task(-1, text, false, new TaskDetails());
                             tasks.add(task);
                             dbHelper.insertTask(text, false, null);
                         }
                     }
-                    checkAndAddRows();
+                    checkAddRows();
                 }
 
                 @Override
-                public void afterTextChanged(Editable s) {}
+                public void afterTextChanged(Editable s) {
+                    if (isEditing) return;
+
+                    String input = s.toString().trim(); // Removes extra spaces or symbols
+                    if (input.isEmpty()) {
+                        isEditing = true;
+                        editText.removeTextChangedListener(this);
+                        editText.setText("");
+                        editText.setSelection(0);
+                        editText.addTextChangedListener(this);
+                        isEditing = false;
+
+                        Task task = getTaskAtIndex(position);
+                        if (task != null) {
+                            tasks.remove(task);
+                            dbHelper.deleteTask(task.getId());
+                        }
+                    }
+                }
             });
 
         }
     }
 
-    private void checkAndAddRows() {
+    private void checkAddRows() {
         try {
             int filledBoxes = 0;
             int totalChildren = taskContainer.getChildCount();
 
-
             for (int i = 0; i < taskContainer.getChildCount(); i++) {
                 View row = taskContainer.getChildAt(i);
                 EditText editText = row.findViewById(R.id.taskEditText);
+
                 if (!editText.getText().toString().isEmpty()) {
                     filledBoxes++;
                 }
@@ -228,6 +281,7 @@ public class MainActivity extends AppCompatActivity {
                 // Double the capacity
                 int newCapacity = currentCapacity * 2;
                 int rowsToAdd = newCapacity - totalChildren;
+
                 for (int i = 0; i < rowsToAdd; i++) {
                     View row = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
                     taskContainer.addView(row);

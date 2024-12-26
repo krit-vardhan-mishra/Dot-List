@@ -8,4 +8,6 @@
     <string name="checked_file_icon">File attached successfully</string>
     <string name="preview">Preview File</string>
     <string name="down_arrow">Down Arrow</string>
+    <string name="image_preview">Splash Screen</string>
+    <string name="add_notes">Add Your Notes Here...</string>
 </resources>

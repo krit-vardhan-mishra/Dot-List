@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
+    android:orientation="vertical"
+    android:padding="8dp"
     android:layout_marginBottom="16dp">
 
+    <!-- Task Row Section -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -17,16 +20,19 @@
 
         <EditText
             android:id="@+id/taskEditText"
-            android:layout_width="309dp"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:gravity="top"
             android:hint="@string/pre_written_text"
+            android:gravity="top"
             android:inputType="text"
-            android:maxLines="70"
+            android:padding="8dp"
             android:minLines="5"
+            android:maxLines="70"
+            android:autofillHints="none"
             android:overScrollMode="always"
-            android:scrollbars="vertical" />
+            android:scrollbars="vertical"
+            android:ellipsize="end"/>
 
         <ImageButton
             android:id="@+id/uploadButton"
@@ -69,14 +75,50 @@
             android:contentDescription="@string/preview"
             android:padding="8dp"
             android:visibility="gone"/>
-
     </LinearLayout>
 
+    <!-- Notes Section -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp"
+        android:visibility="gone"
+        tools:ignore="UseCompoundDrawables">
+
+        <EditText
+            android:id="@+id/notesLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:autofillHints="none"
+            android:hint="@string/add_notes"
+            android:gravity="top"
+            android:inputType="textMultiLine"
+            android:minLines="5"
+            android:maxLines="10"
+            android:scrollbars="vertical"
+            android:overScrollMode="always"
+            android:ellipsize="end"
+            android:padding="8dp" />
+
+        <TextView
+            android:id="@+id/noteWordCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0/75"
+            android:padding="8dp"
+            android:textSize="12sp"
+            tools:ignore="HardcodedText" />
+    </LinearLayout>
+
+    <!-- Task Details Section -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:visibility="gone">
+        android:visibility="gone"
+        android:paddingTop="8dp"
+        tools:ignore="UseCompoundDrawables">
 
         <ImageView
             android:id="@+id/checkMarkIcon"
@@ -85,7 +127,7 @@
             android:src="@drawable/ic_check"
             android:background="@android:color/transparent"
             android:contentDescription="@string/checked_file_icon"
-            android:padding="8dp"/> <!-- Adding padding -->
+            android:padding="8dp"/>
 
         <TextView
             android:id="@+id/taskDetailsTextView"
