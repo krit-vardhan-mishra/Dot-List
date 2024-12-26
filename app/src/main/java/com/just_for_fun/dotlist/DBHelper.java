@@ -5,6 +5,8 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,13 +53,21 @@ public class DBHelper extends SQLiteOpenHelper {
 
     // Insert Task
     public void insertTask(String title, boolean isDone, String filePath) {
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = null;
+        try {
+            db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_TITLE, title);
         values.put(COLUMN_IS_DONE, isDone ? 1 : 0);
         values.put("filePath", filePath);
         db.insert(TABLE_TASKS, null, values);
-        db.close();
+        } catch (Exception e) {
+            Log.e("DBHelper", "Error inserting task: " + e.getMessage());
+        } finally {
+            if (db != null && db.isOpen()) {
+                db.close();
+            }
+        }
     }
 
     // Update Task

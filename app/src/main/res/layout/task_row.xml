@@ -17,16 +17,16 @@
 
         <EditText
             android:id="@+id/taskEditText"
-            android:layout_width="0dp"
+            android:layout_width="309dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:inputType="text"
+            android:gravity="top"
             android:hint="@string/pre_written_text"
+            android:inputType="text"
             android:maxLines="70"
             android:minLines="5"
-            android:scrollbars="vertical"
-            android:gravity="top"
-            android:overScrollMode="always"/>
+            android:overScrollMode="always"
+            android:scrollbars="vertical" />
 
         <ImageButton
             android:id="@+id/uploadButton"

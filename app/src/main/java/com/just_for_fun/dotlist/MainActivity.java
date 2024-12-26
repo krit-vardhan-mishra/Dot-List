@@ -6,6 +6,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -62,12 +63,21 @@ public class MainActivity extends AppCompatActivity {
         addTextWatchersToTasks();
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (dbHelper != null) {
+            dbHelper.close();
+            dbHelper = null;
+        }
+        taskContainer.removeAllViews();
+    }
+
     private void handleFileAttachment(Uri uri) {
         int taskIndex = getTaskIndexFromView(lastClickedView);
         Task task = getTaskAtIndex(taskIndex);
 
         if (task == null) return;
-
         task.getDetails().setFilePath(uri.toString());
 
         View row = taskContainer.getChildAt(taskIndex);
@@ -168,12 +178,25 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < taskContainer.getChildCount(); i++) {
             View row = taskContainer.getChildAt(i);
             EditText editText = row.findViewById(R.id.taskEditText);
+            final int position = i;
+
             editText.addTextChangedListener(new TextWatcher() {
                 @Override
                 public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
                 @Override
                 public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    String text = s.toString();
+
+                    if (!text.isEmpty()) {
+                        Task task = getTaskAtIndex(position);
+
+                        if (task == null) {
+                            task = new Task(-1, text, false, (String) null);
+                            tasks.add(task);
+                            dbHelper.insertTask(text, false, null);
+                        }
+                    }
                     checkAndAddRows();
                 }
 
@@ -185,26 +208,37 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void checkAndAddRows() {
-        int filledBoxes = 0;
-        for (int i = 0; i < taskContainer.getChildCount(); i++) {
-            View row = taskContainer.getChildAt(i);
-            EditText editText = row.findViewById(R.id.taskEditText);
-            if (!editText.getText().toString().isEmpty()) {
-                filledBoxes++;
+        try {
+            int filledBoxes = 0;
+            int totalChildren = taskContainer.getChildCount();
+
+
+            for (int i = 0; i < taskContainer.getChildCount(); i++) {
+                View row = taskContainer.getChildAt(i);
+                EditText editText = row.findViewById(R.id.taskEditText);
+                if (!editText.getText().toString().isEmpty()) {
+                    filledBoxes++;
+                }
             }
+
+            double fillPercentage = totalChildren > 0 ?
+                    (double) filledBoxes / currentCapacity * 100 : 0;
+
+            if (fillPercentage >= 80) {
+                // Double the capacity
+                int newCapacity = currentCapacity * 2;
+                int rowsToAdd = newCapacity - totalChildren;
+                for (int i = 0; i < rowsToAdd; i++) {
+                    View row = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
+                    taskContainer.addView(row);
+                }
+                currentCapacity = newCapacity;
+                addTextWatchersToTasks();
+            }
+        } catch (Exception e) {
+            Log.e("MainActivity", "Error in checkAndAddRows: " + e.getMessage());
         }
 
-        double fillPercentage = (double) filledBoxes / currentCapacity * 100;
-        if (fillPercentage >= 80) {
-            // Double the capacity
-            int newCapacity = currentCapacity * 2;
-            for (int i = 0; i < currentCapacity - taskContainer.getChildCount(); i++) {
-                View row = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
-                addTextWatchersToTasks();
-                taskContainer.addView(row);
-            }
-            addTextWatchersToTasks();
-        }
     }
 
     private int getTaskIndexFromView(View view) {

@@ -14,6 +14,9 @@ public class Task {
         this.title = title;
         this.isCompleted = isCompleted;
         this.details = new TaskDetails(); // Initialize TaskDetails object
+        if (filePath != null) {
+            this.details.setFilePath(filePath);
+        }
         this.filePath = filePath;
     }
 
@@ -59,6 +62,9 @@ public class Task {
     }
 
     public TaskDetails getDetails() {
+        if (details == null) {
+            details = new TaskDetails();
+        }
         return details;
     }
 
@@ -73,4 +79,5 @@ public class Task {
     public  void setFilePath(String filePath) {
         this.filePath = filePath;
     }
+
 }
