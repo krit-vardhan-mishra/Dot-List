@@ -22,6 +22,7 @@ public class DBHelper extends SQLiteOpenHelper {
     private static final String COLUMN_ID = "id";
     private static final String COLUMN_TITLE = "title";
     private static final String COLUMN_IS_DONE = "isDone";
+    private static final String COLUMN_FILE_PATH = "filePath";
 
     // Create Table Query
     private static final String TABLE_CREATE =
@@ -45,10 +46,6 @@ public class DBHelper extends SQLiteOpenHelper {
         if (oldVersion < 2) { // Add 'filePath' column in version 2
             db.execSQL("ALTER TABLE " + TABLE_TASKS + " ADD COLUMN filePath TEXT");
         }
-        if (oldVersion < 3) { // Future updates should follow similar checks
-            // Example: Adding a new column for timestamps
-            db.execSQL("ALTER TABLE " + TABLE_TASKS + " ADD COLUMN timestamp DATETIME DEFAULT CURRENT_TIMESTAMP");
-        }
     }
 
     // Insert Task
@@ -56,11 +53,11 @@ public class DBHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = null;
         try {
             db = this.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(COLUMN_TITLE, title);
-        values.put(COLUMN_IS_DONE, isDone ? 1 : 0);
-        values.put("filePath", filePath);
-        db.insert(TABLE_TASKS, null, values);
+            ContentValues values = new ContentValues();
+            values.put(COLUMN_TITLE, title);
+            values.put(COLUMN_IS_DONE, isDone ? 1 : 0);
+            values.put(COLUMN_FILE_PATH, filePath);
+            db.insert(TABLE_TASKS, null, values);
         } catch (Exception e) {
             Log.e("DBHelper", "Error inserting task: " + e.getMessage());
         } finally {
@@ -76,7 +73,7 @@ public class DBHelper extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put(COLUMN_IS_DONE, isDone ? 1 : 0);
         if (filePath != null) {
-            values.put("filePath", filePath);
+            values.put(COLUMN_FILE_PATH, filePath);
         }
         db.update(TABLE_TASKS, values, COLUMN_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
@@ -100,7 +97,8 @@ public class DBHelper extends SQLiteOpenHelper {
                 String title = cursor.getString(1);
                 boolean isDone = cursor.getInt(2) == 1;
                 String filePath = cursor.getString(3);
-                taskList.add(new Task(id, title, isDone, filePath));
+                TaskDetails details = new TaskDetails(null, filePath);
+                taskList.add(new Task(id, title, isDone, details));
             } while (cursor.moveToNext());
         }
         cursor.close();

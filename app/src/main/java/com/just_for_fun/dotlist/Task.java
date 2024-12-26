@@ -6,29 +6,16 @@ public class Task {
     private String title;
     private boolean isCompleted;
     private TaskDetails details;
-    private String filePath;
 
     // Constructor for database integration (with ID)
-    public Task(int id, String title, boolean isCompleted, String filePath) {
-        this.id = id;
-        this.title = title;
-        this.isCompleted = isCompleted;
-        this.details = new TaskDetails(); // Initialize TaskDetails object
-        if (filePath != null) {
-            this.details.setFilePath(filePath);
-        }
-        this.filePath = filePath;
-    }
-
-    // Constructor for existing tasks with details (loaded from DB)
     public Task(int id, String title, boolean isCompleted, TaskDetails details) {
         this.id = id;
         this.title = title;
         this.isCompleted = isCompleted;
-        this.details = details;
+        this.details = details != null ? details : new TaskDetails();
     }
 
-    // **New Constructor for unsaved tasks (no ID)**
+    // Constructor for unsaved tasks (no ID)
     public Task(String title, boolean isCompleted) {
         this.id = -1; // Temporary ID until saved in DB
         this.title = title;
@@ -73,11 +60,11 @@ public class Task {
     }
 
     public String getFilePath() {
-        return filePath;
+        return details.getFilePath();
     }
 
     public  void setFilePath(String filePath) {
-        this.filePath = filePath;
+        this.details.setFilePath(filePath);
     }
 
 }

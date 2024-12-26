@@ -1,9 +1,18 @@
 package com.just_for_fun.dotlist;
 
+import androidx.annotation.NonNull;
+
 public class TaskDetails {
 
     private String notes;
     private String filePath;
+
+    public TaskDetails() {}
+
+    public TaskDetails(String notes, String filePath) {
+        this.notes = notes;
+        this.filePath = filePath;
+    }
 
     public String getNotes() {
         return notes;
@@ -20,4 +29,11 @@ public class TaskDetails {
     public void setFilePath(String filePath) {
         this.filePath = filePath;
     }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "Notes: " + notes + ", File Path: " + filePath;
+    }
+
 }

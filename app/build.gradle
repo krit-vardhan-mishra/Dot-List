@@ -33,6 +33,7 @@ dependencies {
     implementation libs.appcompat.v161
     implementation libs.material.v190
     implementation libs.core.splashscreen
+    implementation libs.constraintlayout
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
