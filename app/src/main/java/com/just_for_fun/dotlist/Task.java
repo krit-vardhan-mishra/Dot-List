@@ -1,5 +1,7 @@
 package com.just_for_fun.dotlist;
 
+import android.net.Uri;
+
 public class Task {
 
     private int id;
@@ -7,12 +9,31 @@ public class Task {
     private boolean isCompleted;
     private TaskDetails details;
 
+    private String notes;
+    private Uri fileUri;
+    private long timestamp;
+    private int position;
+    private String content;
+
     // Constructor for database integration (with ID)
     public Task(int id, String title, boolean isCompleted, TaskDetails details) {
         this.id = id;
         this.title = title;
         this.isCompleted = isCompleted;
         this.details = details != null ? details : new TaskDetails();
+    }
+
+    public Task(int id, String title, boolean isCompleted, TaskDetails details, long timestamp) {
+        this.id = id;
+        this.title = title;
+        this.isCompleted = isCompleted;
+        this.details = details != null ? details : new TaskDetails();
+        this.timestamp = timestamp;
+    }
+
+    public Task(int id, String content) {
+        this.id = id;
+        this.content = content;
     }
 
     // Constructor for unsaved tasks (no ID)
@@ -65,6 +86,31 @@ public class Task {
 
     public  void setFilePath(String filePath) {
         this.details.setFilePath(filePath);
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public int getPosition() {
+        return position;
+    }
+
+    public void setPosition(int position) {
+        this.position = position;
+    }
+
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
     }
 
 }

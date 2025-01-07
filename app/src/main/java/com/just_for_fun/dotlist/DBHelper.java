@@ -15,7 +15,11 @@ public class DBHelper extends SQLiteOpenHelper {
 
     // Database Name and Version
     private static final String DATABASE_NAME = "ToDoDB";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
+
+    private static final String COLUMN_NOTES = "notes";
+    private static final String COLUMN_TIMESTAMP = "timestamp";
+    private static final String COLUMN_POSITION = "position";
 
     // Table Name and Columns
     private static final String TABLE_TASKS = "tasks";
@@ -29,8 +33,11 @@ public class DBHelper extends SQLiteOpenHelper {
             "CREATE TABLE " + TABLE_TASKS + " ("
                     + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                     + COLUMN_TITLE + " TEXT, "
-                    + COLUMN_IS_DONE + " INTEGER,"
-                    + "filePath TEXT);";
+                    + COLUMN_IS_DONE + " INTEGER, "
+                    + COLUMN_FILE_PATH + " TEXT, "
+                    + COLUMN_NOTES + " TEXT, "
+                    + COLUMN_TIMESTAMP + " INTEGER, "
+                    + COLUMN_POSITION + " INTEGER);";
 
     public DBHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -43,23 +50,26 @@ public class DBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 2) { // Add 'filePath' column in version 2
-            db.execSQL("ALTER TABLE " + TABLE_TASKS + " ADD COLUMN filePath TEXT");
+        if (oldVersion < 2) {
+            db.execSQL("ALTER TABLE " + TABLE_TASKS + " ADD COLUMN " + COLUMN_NOTES + " TEXT");
+            db.execSQL("ALTER TABLE " + TABLE_TASKS + " ADD COLUMN " + COLUMN_TIMESTAMP + " INTEGER DEFAULT " + System.currentTimeMillis());
+            db.execSQL("ALTER TABLE " + TABLE_TASKS + " ADD COLUMN " + COLUMN_POSITION + " INTEGER DEFAULT 0");
         }
     }
 
     // Insert Task
-    public void insertTask(String title, boolean isDone, String filePath) {
+    public long insertTask(Task task) {
         SQLiteDatabase db = null;
         try {
-            db = this.getWritableDatabase();
+            db = getWritableDatabase();
             ContentValues values = new ContentValues();
-            values.put(COLUMN_TITLE, title);
-            values.put(COLUMN_IS_DONE, isDone ? 1 : 0);
-            values.put(COLUMN_FILE_PATH, filePath);
-            db.insert(TABLE_TASKS, null, values);
-        } catch (Exception e) {
-            Log.e("DBHelper", "Error inserting task: " + e.getMessage());
+            values.put(COLUMN_TITLE, task.getTitle());
+            values.put(COLUMN_IS_DONE, task.isCompleted() ? 1 : 0);
+            values.put(COLUMN_FILE_PATH, task.getFilePath());
+            values.put(COLUMN_NOTES, task.getDetails().getNotes());
+            values.put(COLUMN_TIMESTAMP, task.getTimestamp());
+            values.put(COLUMN_POSITION, task.getPosition());
+            return db.insert(TABLE_TASKS, null, values);
         } finally {
             if (db != null && db.isOpen()) {
                 db.close();

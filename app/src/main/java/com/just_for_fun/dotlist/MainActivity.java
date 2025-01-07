@@ -1,7 +1,6 @@
 package com.just_for_fun.dotlist;
 
-import static android.net.http.SslCertificate.restoreState;
-
+import android.app.Activity;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
@@ -27,14 +26,19 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
+import com.bumptech.glide.Glide;
+
 import java.util.ArrayList;
 import java.util.List;
+
 
 public class MainActivity extends AppCompatActivity {
 
     private static final String KEY_TASK_STATES = "task_states";
     private static final String KEY_NOTES = "notes";
     private static final String KEY_FILE_URI = "file_uri";
+    private static final String STATE_SCROLL_POSITION = "scroll_position";
+    private static final int REQUEST_PERMISSIONS = 1001;
 
     private CheckBox checkBox;
     private EditText notesArea;
@@ -55,7 +59,6 @@ public class MainActivity extends AppCompatActivity {
     private final Handler containerMonitorHandler = new Handler(Looper.getMainLooper());
     private boolean isMonitoringActive = true;
 
-    // Dynamic container management
     private final int MIN_CONTAINERS = 5;
     private final int ADD_THRESHOLD = 2;
     private final int REMOVE_THRESHOLD = 2;
@@ -66,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         initializeViews();
-        initializeDatabase();
+        initializeDatabase();       // it's all starts from here.
         setupInitialState(savedInstanceState);
         setupClickListeners();
         setupFilePicker();
@@ -83,12 +86,12 @@ public class MainActivity extends AppCompatActivity {
         uploadButton = findViewById(R.id.uploadButton);
         previewButton = findViewById(R.id.previewButton);
         taskContainer = findViewById(R.id.taskContainer);
-        scrollView = findViewById(R.id.scrollView);
+        scrollView = findViewById(R.id.scroll_view);
     }
 
     private void initializeDatabase() {
         dbHelper = new DBHelper(this);
-        loadTasksFromDatabase();
+        loadTasksFromDatabase();            // second error
     }
 
     private void setupInitialState(Bundle savedInstanceState) {
@@ -109,28 +112,25 @@ public class MainActivity extends AppCompatActivity {
         downArrow.setOnClickListener(v -> toggleNotesVisibility(true));
         upArrow.setOnClickListener(v -> toggleNotesVisibility(false));
         uploadButton.setOnClickListener(v -> openFilePicker());
-        previewButton.setOnClickListener(v -> openFilePicker());
-
-        setupTaskEditTextListener(taskEditText);
+        previewButton.setOnClickListener(v -> showFilePreview());
     }
 
     private void setupFilePicker() {
         filePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
-                this::handleFilePickerResult
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        handleFileSelection(result.getData().getData());
+                    }
+                }
         );
     }
 
-    private void handleFilePickerResult(ActivityResult result) {
-        try {
-            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                selectedFileUri = result.getData().getData();
-                if (selectedFileUri != null) {
-                    updateFilePreview();
-                }
-            }
-        } catch (Exception e) {
-            showError("Error selecting file: " + e.getMessage());
+    private void handleFileSelection(Uri uri) {
+        if (uri != null) {
+            getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            selectedFileUri = uri;
+            updateFilePreview();
         }
     }
 
@@ -141,10 +141,10 @@ public class MainActivity extends AppCompatActivity {
         try {
             Glide.with(this)
                     .load(selectedFileUri)
-                    .error(R.drawable.ic_file_placeholdre)
-                    .into(previewButton)
+                    .error(R.drawable.ic_file_placeholder)
+                    .into(previewButton);
         } catch (Exception e) {
-            previewButton.setImageResource(R.drawable.ic_fle_placeholder);
+            previewButton.setImageResource(R.drawable.ic_file_placeholder);
         }
     }
 
@@ -176,16 +176,433 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void startContainerMonitor() {
-        Runnable monitorRunnable = new Runnable() {
+        containerMonitorHandler.post(new Runnable() {
             @Override
             public void run() {
                 if (isMonitoringActive) {
                     updateContainers();
-                    containerMonitorHandler.postDelayed(this, 5000);
+                    containerMonitorHandler.postDelayed(this, 5000); // Retry after 5 seconds
                 }
             }
-        };
-        containerMonitorHandler.post(monitorRunnable);
+        });
+    }
+
+    private void updateContainers() {
+        int emptyCount = countEmptyContainers();
+
+        if (emptyCount <= ADD_THRESHOLD) {
+            addNewTaskContainer();
+        } else if (containerStates.size() > MIN_CONTAINERS && emptyCount > REMOVE_THRESHOLD) {
+            removeEmptyContainers(emptyCount - REMOVE_THRESHOLD);
+        }
+    }
+
+    private int countEmptyContainers() {
+        int count = 0;
+
+        for (boolean state : containerStates) {
+            if (!state) count++;
+        }
+
+        return count;
+    }
+
+    private void addNewTaskContainer() {
+        View container = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
+
+        ImageButton downArrow = container.findViewById(R.id.down_arrow);
+        ImageButton upArrow = container.findViewById(R.id.up_arrow);
+        ConstraintLayout notesLayout = container.findViewById(R.id.notesLayout);
+
+        notesLayout.setVisibility(View.GONE);
+        upArrow.setVisibility(View.GONE);
+
+        downArrow.setOnClickListener(v -> {
+            TransitionManager.beginDelayedTransition(taskContainer);
+            notesLayout.setVisibility(View.VISIBLE);
+            downArrow.setVisibility(View.GONE);
+            upArrow.setVisibility(View.VISIBLE);
+        });
+
+        upArrow.setOnClickListener(v -> {
+            TransitionManager.beginDelayedTransition(taskContainer);
+            notesLayout.setVisibility(View.GONE);
+            downArrow.setVisibility(View.VISIBLE);
+            upArrow.setVisibility(View.GONE);
+        });
+
+        taskContainer.addView(container);
+        containerStates.add(false);
+    }
+
+    private void removeEmptyContainers(int count) {
+        for (int i = containerStates.size() - 1; i >= 0 && count > 0; i--) {
+            if (!containerStates.get(i)) {
+                taskContainer.removeViewAt(i);
+                containerStates.remove(i);
+                count--;
+            }
+        }
+    }
+
+    private void loadTasksFromDatabase() {
+        tasks.clear();
+        tasks.addAll(dbHelper.getAllTasks());
+
+        for (Task task : tasks) {
+            View container = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
+            EditText taskEdit = container.findViewById(R.id.taskEditText);
+            taskEdit.setText(task.getContent());
+            setupTaskEditText(taskEdit);
+            taskContainer.addView(container);
+            containerStates.add(!task.getContent().isEmpty());      // first error
+        }
+    }
+
+    private void setupTaskEditText(EditText editText) {
+        // Add TextWatcher to the EditText to monitor text changes
+        editText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Get the index of the EditText and update the task state
+                int index = getEditTextIndex(editText);
+                updateTaskState(index, !s.toString().trim().isEmpty()); // Update state based on whether the task is filled
+                saveTaskToDatabase(index, s.toString()); // Save the updated task to the database
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    private void updateTaskState(int index, boolean isFilled) {
+        containerStates.set(index, isFilled);
+    }
+
+    private int getEditTextIndex(EditText editText) {
+        View container = (View) editText.getParent();
+        return  taskContainer.indexOfChild(container);
+    }
+
+    private void saveTaskToDatabase(int index, String content) {
+        Task task = new Task(index, content);
+        task.setPosition(index);
+        dbHelper.updateTask(task.getPosition(), task.isCompleted(), task.getFilePath());
+    }
+
+    private void deleteTaskFromDatabase(int index) {
+        dbHelper.deleteTask(index);
+    }
+
+    private void showError(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putSerializable(KEY_TASK_STATES, new ArrayList<>(containerStates));
+        outState.putString(KEY_NOTES, notesArea.getText().toString());
+        outState.putInt(STATE_SCROLL_POSITION, scrollView.getScrollY());
+        if (selectedFileUri != null) {
+            outState.putString(KEY_FILE_URI, selectedFileUri.toString());
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void restoreState(Bundle savedInstanceState) {
+        containerStates.clear();
+        containerStates.addAll((List<Boolean>) savedInstanceState.getSerializable(KEY_TASK_STATES));
+
+        notesArea.setText(savedInstanceState.getString(KEY_NOTES, ""));
+
+        String uriString = savedInstanceState.getString(KEY_FILE_URI);
+        if (uriString != null) {
+            selectedFileUri = Uri.parse(uriString);
+            updateFilePreview();
+        }
+    }
+
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            handleLandscapeMode();
+        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            handlePortraitMode();
+        }
+
+        if (isKeyboardVisible(newConfig)) {
+            scrollToActiveTask();
+        }
+
+        taskContainer.post(() -> {
+            updateContainers();
+            if (notesLayout.getVisibility() == View.VISIBLE) {
+                updateTaskEditTextConstraints(true);
+            }
+        });
+    }
+
+    private void handleLandscapeMode() {
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) taskContainer.getLayoutParams();
+        params.setMargins(dpToPx(16), dpToPx(8), dpToPx(16), dpToPx(8));
+        taskContainer.setLayoutParams(params);
+
+        for (int i = 0; i < taskContainer.getChildCount(); i++) {
+            View child = taskContainer.getChildAt(i);
+            child.getLayoutParams().width = getResources().getDimensionPixelSize(R.dimen.task_width_landscape);
+        }
+    }
+
+    private void handlePortraitMode() {
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) taskContainer.getLayoutParams();
+        params.setMargins(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
+        taskContainer.setLayoutParams(params);
+
+        for (int i = 0; i < taskContainer.getChildCount(); i++) {
+            View child = taskContainer.getChildAt(i);
+            child.getLayoutParams().width = ViewGroup.LayoutParams.MATCH_PARENT;
+        }
+    }
+
+    private boolean isKeyboardVisible(Configuration config) {
+        return (config.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO);
+    }
+
+    private void scrollToActiveTask() {
+        View focusedChild = taskContainer.getFocusedChild();
+        if (focusedChild != null) {
+            scrollView.post(() -> scrollView.smoothScrollTo(0, focusedChild.getTop()));
+        }
+    }
+
+    private int dpToPx(int dp) {
+        return (int) (dp * getResources().getDisplayMetrics().density);
+    }
+
+    private void openFilePicker() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.setType("*/");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        filePickerLauncher.launch(intent);
+    }
+}
+
+
+/*
+public class MainActivity extends AppCompatActivity {
+
+    private static final String KEY_TASK_STATES = "task_states";
+    private static final String KEY_NOTES = "notes";
+    private static final String KEY_FILE_URI = "file_uri";
+    private static final String STATE_SCROLL_POSITION = "scroll_position";
+    private static final int REQUEST_PERMISSIONS = 1001;
+//    private static final String READ_EXTERNAL_STORAGE = Manifest.permission.READ_EXTERNAL_STORAGE;
+
+    private CheckBox checkBox;
+    private EditText notesArea;
+    private ImageButton upArrow;
+    private ImageButton downArrow;
+    private EditText taskEditText;
+    private ImageButton uploadButton;
+    private ImageButton previewButton;
+    private ConstraintLayout notesLayout;
+    private LinearLayout taskContainer;
+    private ScrollView scrollView;
+
+    private ActivityResultLauncher<Intent> filePickerLauncher;
+    private DBHelper dbHelper;
+    private Uri selectedFileUri;
+    private final List<Boolean> containerStates = new ArrayList<>();
+    private final List<Task> tasks = new ArrayList<>();
+    private final Handler containerMonitorHandler = new Handler(Looper.getMainLooper());
+    private boolean isMonitoringActive = true;
+
+    // Dynamic container management
+    private final int MIN_CONTAINERS = 5;
+    private final int ADD_THRESHOLD = 2;
+    private final int REMOVE_THRESHOLD = 2;
+
+//    private boolean isTaskEditMode = false;
+//    private int currentTaskPosition = -1;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+//        checkPermissions();
+        initializeViews();
+        initializeDatabase();
+        setupInitialState(savedInstanceState);
+        setupClickListeners();
+        setupFilePicker();
+        startContainerMonitor();
+    }
+
+//    private void checkPermissions() {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+//            if (checkSelfPermission(READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+//                requestPermissions(new String[]{READ_EXTERNAL_STORAGE}, REQUEST_PERMISSIONS);
+//            }
+//        }
+//    }
+
+    private void initializeViews() {
+        upArrow = findViewById(R.id.up_arrow);
+        notesArea = findViewById(R.id.notesArea);
+        downArrow = findViewById(R.id.down_arrow);
+        checkBox = findViewById(R.id.taskCheckbox);
+        notesLayout = findViewById(R.id.notesLayout);
+        taskEditText = findViewById(R.id.taskEditText);
+        uploadButton = findViewById(R.id.uploadButton);
+        previewButton = findViewById(R.id.previewButton);
+        taskContainer = findViewById(R.id.taskContainer);
+        scrollView = findViewById(R.id.scroll_view);
+    }
+
+    private void initializeDatabase() {
+        dbHelper = new DBHelper(this);
+        loadTasksFromDatabase();
+    }
+
+    private void setupInitialState(Bundle savedInstanceState) {
+        if (savedInstanceState != null) {
+            restoreState(savedInstanceState);
+        } else {
+            notesLayout.setVisibility(View.GONE);
+            upArrow.setVisibility(View.GONE);
+            previewButton.setVisibility(View.GONE);
+
+            for (int i = 0; i < MIN_CONTAINERS; i++) {
+                addNewTaskContainer();
+            }
+        }
+    }
+
+    private void setupClickListeners() {
+        downArrow.setOnClickListener(v -> toggleNotesVisibility(true));
+        upArrow.setOnClickListener(v -> toggleNotesVisibility(false));
+        uploadButton.setOnClickListener(v -> openFilePicker());
+        previewButton.setOnClickListener(v -> showFilePreview());
+
+//        setupTaskEditText(taskEditText);
+    }
+
+    private void setupFilePicker() {
+        filePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        handleFileSelection(result.getData().getData());
+                    }
+                }
+        );
+    }
+
+    private void handleFileSelection(Uri uri) {
+        if (uri != null) {
+//            final int takeFlags = Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+            getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+            selectedFileUri = uri;
+            updateFilePreview();
+//            saveTask();
+        }
+    }
+
+    private void handleFilePickerResult(ActivityResult result) {
+        try {
+            if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                selectedFileUri = result.getData().getData();
+                if (selectedFileUri != null) {
+                    updateFilePreview();
+                }
+            }
+        } catch (Exception e) {
+            showError("Error selecting file: " + e.getMessage());
+        }
+    }
+
+    private void updateFilePreview() {
+        uploadButton.setVisibility(View.GONE);
+        previewButton.setVisibility(View.VISIBLE);
+
+        try {
+            Glide.with(this)
+                    .load(selectedFileUri)
+                    .error(R.drawable.ic_file_placeholder)
+                    .into(previewButton);
+        } catch (Exception e) {
+            previewButton.setImageResource(R.drawable.ic_file_placeholder);
+        }
+    }
+
+    private void showFilePreview() {
+        if (selectedFileUri != null) {
+            try {
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                intent.setData(selectedFileUri);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startActivity(intent);
+            } catch (Exception e) {
+                showError("Cannot open file: " + e.getMessage());
+            }
+        }
+    }
+
+    private void toggleNotesVisibility(boolean show) {
+        TransitionManager.beginDelayedTransition(scrollView);
+
+        notesLayout.setVisibility(show ? View.VISIBLE : View.GONE);
+        downArrow.setVisibility(show ? View.GONE : View.VISIBLE);
+        upArrow.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
+    private void updateTaskEditTextConstraints(boolean notesVisibility) {
+        ConstraintLayout.LayoutParams layoutParams = (ConstraintLayout.LayoutParams) taskEditText.getLayoutParams();
+        layoutParams.endToStart = notesVisibility ? upArrow.getId() : downArrow.getId();
+        taskEditText.setLayoutParams(layoutParams);
+    }
+
+    private void startContainerMonitor() {
+        containerMonitorHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if (isMonitoringActive) {
+                    updateContainers();
+                    containerMonitorHandler.postDelayed(this, 5000); // Retry after 5 seconds
+                }
+            }
+        });
+    }
+
+//    private void startContainerMonitor() {
+//        containerMonitorHandler.postDelayed(new Runnable() {
+//            @Override
+//            public void run() {
+//                if (isMonitoringActive) {
+//                    updateContainers();
+//                    containerMonitorHandler.postDelayed(this, 5000);
+//                }
+//            }
+//        });
+//    }
+//        Runnable monitorRunnable = new Runnable() {
+//            @Override
+//            public void run() {
+//                if (isMonitoringActive) {
+//                    updateContainers();
+//                    containerMonitorHandler.postDelayed(this, 5000);
+//                }
+//            }
+//        };
+//        containerMonitorHandler.post(monitorRunnable);
 //        moniterThread.start();
 //        new Thread(() -> {
 //            while (true) {
@@ -220,13 +637,13 @@ public class MainActivity extends AppCompatActivity {
 //                }
 //            }
 //        }).start();
-    }
+//    }
 
     private void updateContainers() {
         int emptyCount = countEmptyContainers();
 
         if (emptyCount <= ADD_THRESHOLD) {
-            addNewTaskContainer(2);
+            addNewTaskContainer();
         } else if (containerStates.size() > MIN_CONTAINERS && emptyCount > REMOVE_THRESHOLD) {
             removeEmptyContainers(emptyCount - REMOVE_THRESHOLD);
         }
@@ -248,18 +665,54 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+//    private void addNewTaskContainer() {
+//        View container = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
+//        setupTaskView(container);
+//        taskContainer.addView(container);
+//        containerStates.add(false);
+
+        // Save task position
+//        Task task = new Task("", false);
+//        task.setPosition(taskContainer.getChildCount() - 1);
+//        tasks.add(task);
+//
+//        TransitionManager.beginDelayedTransition(taskContainer);
+//    }
+
     private void addNewTaskContainer() {
         View container = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
-        EditText taskEditText = container.findViewById(R.id.taskEditText);
-        setUpTaskEditTextListener(taskEditText);
+
+        ImageButton downArrow = container.findViewById(R.id.down_arrow);
+        ImageButton upArrow = container.findViewById(R.id.up_arrow);
+        ConstraintLayout notesLayout = container.findViewById(R.id.notesLayout);
+
+        notesLayout.setVisibility(View.GONE);
+        upArrow.setVisibility(View.GONE);
+
+        downArrow.setOnClickListener(v -> {
+            TransitionManager.beginDelayedTransition(taskContainer);
+            notesLayout.setVisibility(View.VISIBLE);
+            downArrow.setVisibility(View.GONE);
+            upArrow.setVisibility(View.VISIBLE);
+        });
+
+        upArrow.setOnClickListener(v -> {
+            TransitionManager.beginDelayedTransition(taskContainer);
+            notesLayout.setVisibility(View.GONE);
+            downArrow.setVisibility(View.VISIBLE);
+            upArrow.setVisibility(View.GONE);
+        });
 
         taskContainer.addView(container);
         containerStates.add(false);
-
-        TransitionManager.beginDelayedTransition(taskContainer);
     }
 
-    private void setUpTaskEditTextListener(EditText editText) {
+    private void setupTaskView(View taskView) {
+        EditText taskEdit = taskView.findViewById(R.id.taskEditText);
+        CheckBox checkBox = taskView.findViewById(R.id.taskCheckbox);
+    }
+
+    private void setupTaskEditText(EditText editText) {
         editText.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
@@ -274,19 +727,55 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) { }
         });
+
+//        editText.setOnFocusChangeListener((v, hasFocus) -> {
+//            if (hasFocus) {
+//                currentTaskPosition = getEditTextIndex(editText);
+//                isTaskEditMode = true;
+//            }
+//        });
     }
+
+
+//    private void saveTask() {
+//        if (currentTaskPosition != -1 && currentTaskPosition < tasks.size()) {
+//            Task currentTask = tasks.get(currentTaskPosition);
+//            View taskView = taskContainer.getChildAt(currentTaskPosition);
+//            EditText taskEdit = taskView.findViewById(R.id.taskEditText);
+//
+//            currentTask.setContent(taskEdit.getText().toString());
+//            currentTask.setFileUri(selectedFileUri != null ? selectedFileUri.toString() : null);
+//
+//            // Save to database
+//            saveTaskToDatabase(currentTaskPosition, currentTask.getContent());
+//
+//            // Reset edit mode
+//            isTaskEditMode = false;
+//            currentTaskPosition = -1;
+//        }
+//    }
 
     private int getEditTextIndex(EditText editText) {
         View container = (View) editText.getParent();
         return taskContainer.indexOfChild(container);
     }
 
+//    private void removeEmptyContainers(int count) {
+//        int removed = 0;
+//        for (int i = containerStates.size() - 1; i >= 0 && removed < count; i--) {
+//            if (!containerStates.get(i)) {
+//                removeTaskContainer(i);
+//                removed++;
+//            }
+//        }
+//    }
+
     private void removeEmptyContainers(int count) {
-        int removed = 0;
-        for (int i = containerStates.size() - 1; i >= 0 && removed < count; i--) {
+        for (int i = containerStates.size() - 1; i >= 0 && count > 0; i--) {
             if (!containerStates.get(i)) {
-                removeTaskContainer(i);
-                removed++;
+                taskContainer.removeViewAt(i);
+                containerStates.remove(i);
+                count--;
             }
         }
     }
@@ -306,7 +795,7 @@ public class MainActivity extends AppCompatActivity {
             View container = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
             EditText taskEdit = container.findViewById(R.id.taskEditText);
             taskEdit.setText(task.getContent());
-            setupTaskEditTextListener(taskEdit);
+            setupTaskEditText(taskEdit);
             taskContainer.addView(container);
             containerStates.add(!task.getContent().isEmpty());
         }
@@ -314,7 +803,8 @@ public class MainActivity extends AppCompatActivity {
 
     private void saveTaskToDatabase(int index, String content) {
         Task task = new Task(index, content);
-        dbHelper.updateTask(task);
+        task.setPosition(index);
+        dbHelper.updateTask(task.getPosition(), task.isCompleted(), task.getFilePath());
     }
 
     private void deleteTaskFromDatabase(int index) {
@@ -330,6 +820,7 @@ public class MainActivity extends AppCompatActivity {
         super.onSaveInstanceState(outState);
         outState.putSerializable(KEY_TASK_STATES, new ArrayList<>(containerStates));
         outState.putString(KEY_NOTES, notesArea.getText().toString());
+        outState.putInt(STATE_SCROLL_POSITION, scrollView.getScrollY());
         if (selectedFileUri != null) {
             outState.putString(KEY_FILE_URI, selectedFileUri.toString());
         }
@@ -383,7 +874,7 @@ public class MainActivity extends AppCompatActivity {
         // Adjust task row width if needed
         for (int i = 0; i < taskContainer.getChildCount(); i++) {
             View child = taskContainer.getChildAt(i);
-            child.getLayoutParams().width = getResources().getDimensionPixelSize(R.dimen.task_row_width_landscape);
+            child.getLayoutParams().width = getResources().getDimensionPixelSize(R.dimen.task_width_landscape);
         }
     }
 
@@ -417,7 +908,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void openFilePicker() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.setType("*/");
+//        intent.setType("*"/"");    have to make it change it
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         filePickerLauncher.launch(intent);
     }
@@ -436,7 +927,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 }
-
+*/
 /*
 package com.just_for_fun.dotlist;
 
@@ -706,3 +1197,5 @@ public class MainActivity extends AppCompatActivity {
 }
 
 */
+
+
