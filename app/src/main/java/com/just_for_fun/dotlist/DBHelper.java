@@ -21,6 +21,7 @@ public class DBHelper extends SQLiteOpenHelper {
     private static final String COLUMN_TIMESTAMP = "timestamp";
     private static final String COLUMN_POSITION = "position";
 
+
     // Table Name and Columns
     private static final String TABLE_TASKS = "tasks";
     private static final String COLUMN_ID = "id";
@@ -28,15 +29,20 @@ public class DBHelper extends SQLiteOpenHelper {
     private static final String COLUMN_IS_DONE = "isDone";
     private static final String COLUMN_FILE_PATH = "filePath";
 
+    private static final String COLUMN_CONTENT = "content";
+    private static final String COLUMN_COMPLETED = "completed";
+
     // Create Table Query
     private static final String TABLE_CREATE =
             "CREATE TABLE " + TABLE_TASKS + " ("
                     + COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                     + COLUMN_TITLE + " TEXT, "
+                    + COLUMN_CONTENT + " TEXT, "  // Added missing column
                     + COLUMN_IS_DONE + " INTEGER, "
+                    + COLUMN_COMPLETED + " INTEGER, "  // Added missing column
                     + COLUMN_FILE_PATH + " TEXT, "
                     + COLUMN_NOTES + " TEXT, "
-                    + COLUMN_TIMESTAMP + " INTEGER, "
+                    + COLUMN_TIMESTAMP + " INTEGER DEFAULT " + System.currentTimeMillis() + ", "
                     + COLUMN_POSITION + " INTEGER);";
 
     public DBHelper(Context context) {
@@ -63,12 +69,25 @@ public class DBHelper extends SQLiteOpenHelper {
         try {
             db = getWritableDatabase();
             ContentValues values = new ContentValues();
-            values.put(COLUMN_TITLE, task.getTitle());
+
+            // Handle both content-based and title-based tasks
+            if (task.getContent() != null) {
+                values.put(COLUMN_CONTENT, task.getContent());
+            } else {
+                values.put(COLUMN_TITLE, task.getTitle());
+            }
+
             values.put(COLUMN_IS_DONE, task.isCompleted() ? 1 : 0);
             values.put(COLUMN_FILE_PATH, task.getFilePath());
-            values.put(COLUMN_NOTES, task.getDetails().getNotes());
-            values.put(COLUMN_TIMESTAMP, task.getTimestamp());
             values.put(COLUMN_POSITION, task.getPosition());
+
+            // Only add notes if details exists
+            if (task.getDetails() != null) {
+                values.put(COLUMN_NOTES, task.getDetails().getNotes());
+            }
+
+            values.put(COLUMN_TIMESTAMP, System.currentTimeMillis());
+
             return db.insert(TABLE_TASKS, null, values);
         } finally {
             if (db != null && db.isOpen()) {
@@ -78,15 +97,19 @@ public class DBHelper extends SQLiteOpenHelper {
     }
 
     // Update Task
-    public void updateTask(int id, boolean isDone, String filePath) {
+    public int updateTask(int position, boolean completed, String filePath) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(COLUMN_IS_DONE, isDone ? 1 : 0);
-        if (filePath != null) {
-            values.put(COLUMN_FILE_PATH, filePath);
-        }
-        db.update(TABLE_TASKS, values, COLUMN_ID + "=?", new String[]{String.valueOf(id)});
+
+        values.put(COLUMN_COMPLETED, completed ? 1 : 0);
+        values.put(COLUMN_FILE_PATH, filePath);
+
+        int rowsAffected = db.update(TABLE_TASKS,
+                values,
+                COLUMN_POSITION + " = ?",
+                new String[]{String.valueOf(position)});
         db.close();
+        return rowsAffected;
     }
 
     // Delete Task
@@ -96,23 +119,86 @@ public class DBHelper extends SQLiteOpenHelper {
         db.close();
     }
 
-    // Get All Tasks
+    public int updateTaskContent(int position, String title) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+
+        values.put(COLUMN_TITLE, title);
+
+        int rowsAffected = db.update(TABLE_TASKS,
+                values,
+                COLUMN_POSITION + " = ?",
+                new String[]{String.valueOf(position)});
+        db.close();
+        return rowsAffected;
+    }
+
+    // Get all tasks
     public List<Task> getAllTasks() {
         List<Task> taskList = new ArrayList<>();
+        String selectQuery = "SELECT * FROM " + TABLE_TASKS + " ORDER BY " + COLUMN_POSITION;
+
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_TASKS, null);
-        if (cursor.moveToFirst()) {
-            do {
-                int id = cursor.getInt(0);
-                String title = cursor.getString(1);
-                boolean isDone = cursor.getInt(2) == 1;
-                String filePath = cursor.getString(3);
-                TaskDetails details = new TaskDetails(null, filePath);
-                taskList.add(new Task(id, title, isDone, details));
-            } while (cursor.moveToNext());
+        Cursor cursor = null;
+
+        try {
+            cursor = db.rawQuery(selectQuery, null);
+
+            if (cursor != null && cursor.moveToFirst()) {
+                int idIndex = cursor.getColumnIndexOrThrow(COLUMN_ID);
+                int titleIndex = cursor.getColumnIndex(COLUMN_TITLE);  // Use getColumnIndex instead
+                int contentIndex = cursor.getColumnIndex(COLUMN_CONTENT);  // Add content index
+                int isDoneIndex = cursor.getColumnIndex(COLUMN_IS_DONE);
+                int filePathIndex = cursor.getColumnIndex(COLUMN_FILE_PATH);
+                int notesIndex = cursor.getColumnIndex(COLUMN_NOTES);
+                int positionIndex = cursor.getColumnIndex(COLUMN_POSITION);
+                int timestampIndex = cursor.getColumnIndex(COLUMN_TIMESTAMP);
+
+                do {
+                    Task task = new Task();
+                    task.setId(cursor.getInt(idIndex));
+
+                    // Handle both content and title based tasks
+                    if (contentIndex != -1 && !cursor.isNull(contentIndex)) {
+                        task.setContent(cursor.getString(contentIndex));
+                    } else if (titleIndex != -1 && !cursor.isNull(titleIndex)) {
+                        task.setTitle(cursor.getString(titleIndex));
+                    }
+
+                    if (isDoneIndex != -1) {
+                        task.setCompleted(cursor.getInt(isDoneIndex) == 1);
+                    }
+
+                    if (filePathIndex != -1) {
+                        task.setFilePath(cursor.getString(filePathIndex));
+                    }
+
+                    if (positionIndex != -1) {
+                        task.setPosition(cursor.getInt(positionIndex));
+                    }
+
+                    TaskDetails details = new TaskDetails();
+                    if (notesIndex != -1) {
+                        details.setNotes(cursor.getString(notesIndex));
+                    }
+                    task.setDetails(details);
+
+                    if (timestampIndex != -1) {
+                        task.setTimestamp(cursor.getLong(timestampIndex));
+                    }
+
+                    taskList.add(task);
+                } while (cursor.moveToNext());
+            }
+        } catch (Exception e) {
+            Log.e("DBHelper", "Error reading tasks: " + e.getMessage());
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            db.close();
         }
-        cursor.close();
-        db.close();
+
         return taskList;
     }
 

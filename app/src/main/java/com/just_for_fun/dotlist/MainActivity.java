@@ -2,14 +2,20 @@ package com.just_for_fun.dotlist;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.graphics.Paint;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.transition.AutoTransition;
+import android.transition.Transition;
 import android.transition.TransitionManager;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
@@ -19,7 +25,6 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -28,8 +33,10 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.bumptech.glide.Glide;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -69,11 +76,24 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         initializeViews();
-        initializeDatabase();       // it's all starts from here.
+        loadAppData();
+        initializeDatabase();
         setupInitialState(savedInstanceState);
         setupClickListeners();
         setupFilePicker();
         startContainerMonitor();
+
+        // Set the listener once in onCreate
+        checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                notesArea.setPaintFlags(notesArea.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+                notesArea.setTextColor(getResources().getColor(android.R.color.holo_red_dark));
+            } else {
+                notesArea.setPaintFlags(notesArea.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
+                notesArea.setTextColor(getResources().getColor(android.R.color.black));
+            }
+        });
+
     }
 
     private void initializeViews() {
@@ -91,7 +111,59 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeDatabase() {
         dbHelper = new DBHelper(this);
-        loadTasksFromDatabase();            // second error
+
+        if (dbHelper == null) {
+            showError("Database initialization failed!");
+            return;
+        }
+
+        try {
+            new LoadTasksAsync(this).execute();
+        } catch (Exception e) {
+            showError("Failed to load task: " + e.getMessage());
+        }
+    }
+
+    private static class LoadTasksAsync extends AsyncTask<Void, Void, List<Task>> {
+
+        private final WeakReference<MainActivity> activityReference;
+
+        // Constructor to pass MainActivity instance
+        LoadTasksAsync(MainActivity activity) {
+            activityReference = new WeakReference<>(activity);
+        }
+
+        @Override
+        protected List<Task> doInBackground(Void... voids) {
+            MainActivity activity = activityReference.get();
+            if (activity == null || activity.isFinishing()) {
+                return null;
+            }
+
+            try {
+                return activity.dbHelper.getAllTasks();
+            } catch (Exception e) {
+                Log.e("MainActivity", "Error loading tasks: " + e.getMessage());
+                return null;
+            }
+        }
+
+        @Override
+        protected void onPostExecute(List<Task> dbTasks) {
+            MainActivity activity = activityReference.get();
+            if (activity == null || activity.isFinishing()) {
+                return; // Activity no longer exists, exit safely
+            }
+
+            // Clear and add tasks to the list
+            activity.tasks.clear();
+            if (dbTasks != null) {
+                activity.tasks.addAll(dbTasks);
+                activity.populateTaskContainers(); // Populate UI
+            } else {
+                activity.showError("Failed to load tasks.");
+            }
+        }
     }
 
     private void setupInitialState(Bundle savedInstanceState) {
@@ -102,8 +174,10 @@ public class MainActivity extends AppCompatActivity {
             upArrow.setVisibility(View.GONE);
             previewButton.setVisibility(View.GONE);
 
-            for (int i = 0; i < MIN_CONTAINERS; i++) {
-                addNewTaskContainer();
+            if (tasks.isEmpty()) {
+                for (int i = 0; i < MIN_CONTAINERS; i++) {
+                    addNewTaskContainer();
+                }
             }
         }
     }
@@ -113,6 +187,25 @@ public class MainActivity extends AppCompatActivity {
         upArrow.setOnClickListener(v -> toggleNotesVisibility(false));
         uploadButton.setOnClickListener(v -> openFilePicker());
         previewButton.setOnClickListener(v -> showFilePreview());
+    }
+
+    private void toggleNotesVisibility(boolean show) {
+        TransitionManager.beginDelayedTransition(scrollView);
+
+        // Update visibility of notesLayout
+        notesLayout.setVisibility(show ? View.VISIBLE : View.GONE);
+
+        // Adjust layout constraints dynamically
+        ConstraintLayout.LayoutParams layoutParams =
+                (ConstraintLayout.LayoutParams) taskEditText.getLayoutParams();
+
+        layoutParams.endToStart = show ? upArrow.getId() : downArrow.getId();
+        layoutParams.startToEnd = checkBox.getId();
+        taskEditText.setLayoutParams(layoutParams);
+
+        // Update visibility of arrows
+        downArrow.setVisibility(show ? View.GONE : View.VISIBLE);
+        upArrow.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     private void setupFilePicker() {
@@ -127,10 +220,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleFileSelection(Uri uri) {
-        if (uri != null) {
+        if (uri == null) {
+            showError("Invalid file selection.");
+            return;
+        }
+
+        try {
             getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
             selectedFileUri = uri;
             updateFilePreview();
+        } catch (Exception e) {
+            showError("Failed to select file: " + e.getMessage());
         }
     }
 
@@ -139,12 +239,26 @@ public class MainActivity extends AppCompatActivity {
         previewButton.setVisibility(View.VISIBLE);
 
         try {
-            Glide.with(this)
-                    .load(selectedFileUri)
-                    .error(R.drawable.ic_file_placeholder)
-                    .into(previewButton);
+            // Check if the selected file is an image
+            String mimeType = getContentResolver().getType(selectedFileUri);
+            if (mimeType != null && mimeType.startsWith("image/")) {
+                // Show loading spinner during image loading
+                previewButton.setImageResource(R.drawable.ic_loading_spinner);
+
+                // Load the image using Glide
+                Glide.with(this)
+                        .load(selectedFileUri)
+                        .placeholder(R.drawable.ic_loading_spinner) // Shows a spinner while loading
+                        .error(R.drawable.ic_file_error)           // Shows an error icon if loading fails
+                        .into(previewButton);
+            } else {
+                // If not an image, show the preview icon directly
+                previewButton.setImageResource(R.drawable.preview_icon);
+            }
         } catch (Exception e) {
-            previewButton.setImageResource(R.drawable.ic_file_placeholder);
+            // Show a text message if an error occurs
+            previewButton.setImageResource(R.drawable.preview_icon); // Fallback error icon
+            Toast.makeText(this, "Failed to load file preview.", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -159,14 +273,6 @@ public class MainActivity extends AppCompatActivity {
                 showError("Cannot open file: " + e.getMessage());
             }
         }
-    }
-
-    private void toggleNotesVisibility(boolean show) {
-        TransitionManager.beginDelayedTransition(scrollView);
-
-        notesLayout.setVisibility(show ? View.VISIBLE : View.GONE);
-        downArrow.setVisibility(show ? View.GONE : View.VISIBLE);
-        upArrow.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     private void updateTaskEditTextConstraints(boolean notesVisibility) {
@@ -190,6 +296,13 @@ public class MainActivity extends AppCompatActivity {
     private void updateContainers() {
         int emptyCount = countEmptyContainers();
 
+        while (containerStates.size() < taskContainer.getChildCount()) {
+            containerStates.add(false);
+        }
+        while (containerStates.size() > taskContainer.getChildCount()) {
+            containerStates.remove(containerStates.size() - 1);
+        }
+
         if (emptyCount <= ADD_THRESHOLD) {
             addNewTaskContainer();
         } else if (containerStates.size() > MIN_CONTAINERS && emptyCount > REMOVE_THRESHOLD) {
@@ -210,6 +323,8 @@ public class MainActivity extends AppCompatActivity {
     private void addNewTaskContainer() {
         View container = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
 
+        EditText taskEditText = container.findViewById(R.id.taskEditText);
+        CheckBox checkBox = container.findViewById(R.id.taskCheckbox);
         ImageButton downArrow = container.findViewById(R.id.down_arrow);
         ImageButton upArrow = container.findViewById(R.id.up_arrow);
         ConstraintLayout notesLayout = container.findViewById(R.id.notesLayout);
@@ -218,17 +333,39 @@ public class MainActivity extends AppCompatActivity {
         upArrow.setVisibility(View.GONE);
 
         downArrow.setOnClickListener(v -> {
+            Transition transition = new AutoTransition();
+            transition.setDuration(500);
+            
             TransitionManager.beginDelayedTransition(taskContainer);
             notesLayout.setVisibility(View.VISIBLE);
             downArrow.setVisibility(View.GONE);
             upArrow.setVisibility(View.VISIBLE);
+
+            // Adjust layout constraints dynamically
+            ConstraintLayout.LayoutParams layoutParams =
+                    (ConstraintLayout.LayoutParams) taskEditText.getLayoutParams();
+
+            layoutParams.endToStart = upArrow.getId();
+            layoutParams.startToEnd = checkBox.getId();
+            taskEditText.setLayoutParams(layoutParams);
         });
 
         upArrow.setOnClickListener(v -> {
+            Transition transition = new AutoTransition();
+            transition.setDuration(500);
+
             TransitionManager.beginDelayedTransition(taskContainer);
             notesLayout.setVisibility(View.GONE);
             downArrow.setVisibility(View.VISIBLE);
             upArrow.setVisibility(View.GONE);
+
+            // Adjust layout constraints dynamically
+            ConstraintLayout.LayoutParams layoutParams =
+                    (ConstraintLayout.LayoutParams) taskEditText.getLayoutParams();
+
+            layoutParams.endToStart = downArrow.getId();
+            layoutParams.startToEnd = checkBox.getId();
+            taskEditText.setLayoutParams(layoutParams);
         });
 
         taskContainer.addView(container);
@@ -245,17 +382,19 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void loadTasksFromDatabase() {
-        tasks.clear();
-        tasks.addAll(dbHelper.getAllTasks());
-
+    private void populateTaskContainers() {
         for (Task task : tasks) {
+            if (task == null || task.getContent() == null) {
+                continue; // Skip null or invalid tasks
+            }
+
             View container = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
             EditText taskEdit = container.findViewById(R.id.taskEditText);
             taskEdit.setText(task.getContent());
             setupTaskEditText(taskEdit);
+
             taskContainer.addView(container);
-            containerStates.add(!task.getContent().isEmpty());      // first error
+            containerStates.add(task.getContent() != null && !task.getContent().isEmpty());
         }
     }
 
@@ -288,9 +427,26 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveTaskToDatabase(int index, String content) {
-        Task task = new Task(index, content);
-        task.setPosition(index);
-        dbHelper.updateTask(task.getPosition(), task.isCompleted(), task.getFilePath());
+        try {
+            Task task = new Task(index, content);
+            task.setPosition(index);
+            boolean taskExists = false;
+            for (Task existingTask : tasks) {
+                if (existingTask.getPosition() == index) {
+                    taskExists = true;
+                    break;
+                }
+            }
+
+            if (taskExists) {
+                dbHelper.updateTaskContent(index, content);
+            } else {
+                dbHelper.insertTask(task);
+            }
+        } catch (Exception e) {
+            Log.e("MainActivity", "Error saving task: " + e.getMessage());
+            showError("Failed to save task.");
+        }
     }
 
     private void deleteTaskFromDatabase(int index) {
@@ -315,7 +471,7 @@ public class MainActivity extends AppCompatActivity {
     @SuppressWarnings("unchecked")
     private void restoreState(Bundle savedInstanceState) {
         containerStates.clear();
-        containerStates.addAll((List<Boolean>) savedInstanceState.getSerializable(KEY_TASK_STATES));
+        containerStates.addAll((List<Boolean>) Objects.requireNonNull(savedInstanceState.getSerializable(KEY_TASK_STATES)));
 
         notesArea.setText(savedInstanceState.getString(KEY_NOTES, ""));
 
@@ -387,12 +543,90 @@ public class MainActivity extends AppCompatActivity {
 
     private void openFilePicker() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.setType("*/");
+        intent.setType("*/*"); // Allow all file types initially
+        String[] mimeTypes = {"application/pdf", "text/plain"}; // Add PDF and TXT MIME types
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         filePickerLauncher.launch(intent);
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        saveAppData(); // Save data when the application is closing
+    }
+
+    private void saveAppData() {
+        SharedPreferences preferences = getSharedPreferences("AppData", MODE_PRIVATE);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString("notes", notesArea.getText().toString()); // Save notes
+        editor.apply();
+    }
+
+    private void loadAppData() {
+        SharedPreferences preferences = getSharedPreferences("AppData", MODE_PRIVATE);
+        String savedNotes = preferences.getString("notes", "");
+        notesArea.setText(savedNotes); // Load notes if available
+    }
 }
 
+//    private void loadTasksFromDatabase() {
+//        tasks.clear();
+//        tasks.addAll(dbHelper.getAllTasks());
+//
+//        for (Task task : tasks) {
+//            View container = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
+//            EditText taskEdit = container.findViewById(R.id.taskEditText);
+//            taskEdit.setText(task.getContent());
+//            setupTaskEditText(taskEdit);
+//            taskContainer.addView(container);
+//            containerStates.add(task.getContent() != null && !task.getContent().isEmpty());      // first error
+//        }
+//    }
+
+//    private void loadTasksFromDatabase() {
+//        tasks.clear();
+//
+//        List<Task> dbTasks = dbHelper.getAllTasks();
+//        if (dbTasks == null) {
+//            showError("No tasks found in database.");
+//            return;
+//        }
+//
+//        for (Task task : dbTasks) {
+//            if (task == null || task.getContent() == null) {
+//                continue;
+//            }
+//
+//            View container = getLayoutInflater().inflate(R.layout.task_row, taskContainer, false);
+//            EditText taskEdit = container.findViewById(R.id.taskEditText);
+//            taskEdit.setText(task.getContent());
+//            setupTaskEditText(taskEdit);
+//
+//            taskContainer.addView(container);
+//            containerStates.add(task.getContent() != null && !task.getContent().isEmpty());
+//        }
+//    }
+
+//    private void loadTasksFromDatabaseAsync() {
+//        new AsyncTask<Void, Void, List<Task>>() {
+//            @Override
+//            protected List<Task> doInBackground(Void... voids) {
+//                return dbHelper.getAllTasks();
+//            }
+//
+//            @Override
+//            protected void onPostExecute(List<Task> dbTasks) {
+//                tasks.clear();
+//                if (dbTasks != null) {
+//                    tasks.addAll(dbTasks);
+//                    populateTaskContainers(); // Separate method for adding tasks to the UI
+//                } else {
+//                    showError("Failed to load tasks.");
+//                }
+//            }
+//        }.execute();
+//    }
 
 /*
 public class MainActivity extends AppCompatActivity {

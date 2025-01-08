@@ -15,6 +15,10 @@ public class Task {
     private int position;
     private String content;
 
+    public Task() {
+        this.details = new TaskDetails();
+    }
+
     // Constructor for database integration (with ID)
     public Task(int id, String title, boolean isCompleted, TaskDetails details) {
         this.id = id;
@@ -45,29 +49,17 @@ public class Task {
     }
 
     // Getters and Setters
-    public int getId() {
-        return id;
-    }
+    public int getId() { return id; }
 
-    public void setId(int id) {
-        this.id = id;
-    }
+    public void setId(int id) { this.id = id; }
 
-    public String getTitle() {
-        return title;
-    }
+    public String getTitle() { return title; }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
+    public void setTitle(String title) { this.title = title; }
 
-    public boolean isCompleted() {
-        return isCompleted;
-    }
+    public boolean isCompleted() { return isCompleted; }
 
-    public void setCompleted(boolean completed) {
-        this.isCompleted = completed;
-    }
+    public void setCompleted(boolean completed) { this.isCompleted = completed; }
 
     public TaskDetails getDetails() {
         if (details == null) {
@@ -76,41 +68,22 @@ public class Task {
         return details;
     }
 
-    public void setDetails(TaskDetails details) {
-        this.details = details;
-    }
+    public void setDetails(TaskDetails details) { this.details = details; }
 
-    public String getFilePath() {
-        return details.getFilePath();
-    }
+    public String getFilePath() { return details.getFilePath(); }
 
-    public  void setFilePath(String filePath) {
-        this.details.setFilePath(filePath);
-    }
+    public  void setFilePath(String filePath) { this.details.setFilePath(filePath); }
 
-    public long getTimestamp() {
-        return timestamp;
-    }
+    public long getTimestamp() { return timestamp; }
 
-    public void setTimestamp(long timestamp) {
-        this.timestamp = timestamp;
-    }
+    public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
 
-    public int getPosition() {
-        return position;
-    }
+    public int getPosition() { return position; }
 
-    public void setPosition(int position) {
-        this.position = position;
-    }
+    public void setPosition(int position) { this.position = position; }
 
+    public String getContent() { return content; }
 
-    public String getContent() {
-        return content;
-    }
-
-    public void setContent(String content) {
-        this.content = content;
-    }
+    public void setContent(String content) { this.content = content; }
 
 }
