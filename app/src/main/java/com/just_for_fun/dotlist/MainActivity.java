@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton upArrow;
     private ImageButton downArrow;
     private EditText taskEditText;
+    private ImageButton deleteButton;
     private ImageButton uploadButton;
     private ImageButton previewButton;
     private ConstraintLayout notesLayout;
@@ -94,6 +95,16 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        previewButton.setOnLongClickListener(v -> {
+            deleteButton.setVisibility(View.VISIBLE);
+            return true;
+        });
+
+        deleteButton.setOnClickListener(v -> {
+            deleteTaskFromDatabase(getEditTextIndex(taskEditText));
+            removeUploadedFile();
+        });
+
     }
 
     private void initializeViews() {
@@ -107,6 +118,7 @@ public class MainActivity extends AppCompatActivity {
         previewButton = findViewById(R.id.previewButton);
         taskContainer = findViewById(R.id.taskContainer);
         scrollView = findViewById(R.id.scroll_view);
+        deleteButton = findViewById(R.id.deleteButton);
     }
 
     private void initializeDatabase() {
@@ -273,6 +285,15 @@ public class MainActivity extends AppCompatActivity {
                 showError("Cannot open file: " + e.getMessage());
             }
         }
+    }
+
+    private void removeUploadedFile() {
+        selectedFileUri = null; // Clear the reference
+        // Update UI if needed
+        previewButton.setVisibility(View.GONE);
+        deleteButton.setVisibility(View.GONE);
+        uploadButton.setVisibility(View.VISIBLE);
+        Toast.makeText(this, "File removed successfully", Toast.LENGTH_SHORT).show();
     }
 
     private void updateTaskEditTextConstraints(boolean notesVisibility) {

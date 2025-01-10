@@ -108,6 +108,17 @@
                 app:layout_constraintEnd_toEndOf="@id/notesArea" />
 
             <ImageButton
+                android:id="@+id/deleteButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginEnd="4dp"
+                android:background="@android:color/transparent"
+                android:src="@drawable/delete_icon"
+                android:visibility="gone"
+                app:layout_constraintBottom_toTopOf="@id/previewButton"
+                app:layout_constraintEnd_toEndOf="@id/notesArea" />
+
+            <ImageButton
                 android:id="@+id/previewButton"
                 android:layout_width="48dp"
                 android:layout_height="48dp"

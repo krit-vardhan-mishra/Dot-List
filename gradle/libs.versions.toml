@@ -1,5 +1,5 @@
 [versions]
-agp = "8.7.3"
+agp = "8.8.0"
 androidPdfViewer = "3.2.0-beta.1"
 androidPdfViewerVersion = "3.2.0-beta.3"
 appcompatVersion = "1.6.1"
