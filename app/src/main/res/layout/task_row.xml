@@ -27,15 +27,14 @@
                 android:id="@+id/taskCheckbox"
                 android:layout_width="48dp"
                 android:layout_height="50dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                tools:layout_editor_absoluteX="0dp" />
+                app:layout_constraintBottom_toBottomOf="parent" />
 
             <EditText
                 android:id="@+id/taskEditText"
                 android:layout_width="301dp"
                 android:layout_height="50dp"
                 android:layout_weight="1"
-                android:hint="Enter Your Task"
+                android:hint="@string/enter_your_task"
                 android:inputType="text"
                 android:maxLines="70"
                 android:minLines="5"
@@ -84,7 +83,7 @@
                 android:id="@+id/notesArea"
                 android:layout_width="384dp"
                 android:layout_height="109dp"
-                android:hint="Write Your Notes"
+                android:hint="@string/write_your_notes"
                 android:inputType="textMultiLine"
                 android:maxLines="10"
                 android:minLines="5"
@@ -134,107 +133,3 @@
     </LinearLayout>
 
 </LinearLayout>
-
-    <!--
-
-    <?xml version="1.0" encoding="utf-8"?>
-    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginBottom="16dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <CheckBox
-                android:id="@+id/taskCheckbox"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-
-            <EditText
-                android:id="@+id/taskEditText"
-                android:layout_width="309dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="top"
-                android:hint="@string/pre_written_text"
-                android:inputType="text"
-                android:maxLines="70"
-                android:minLines="5"
-                android:overScrollMode="always"
-                android:scrollbars="vertical" />
-
-            <ImageButton
-                android:id="@+id/uploadButton"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/upload_icon"
-                android:background="@android:color/transparent"
-                android:contentDescription="@string/upload"
-                android:padding="8dp" />
-
-            <ImageView
-                android:id="@+id/previewButton"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/preview_icon"
-                android:background="@android:color/transparent"
-                android:contentDescription="@string/preview"
-                android:padding="8dp"
-                android:visibility="gone"/>
-
-            <ImageView
-                android:id="@+id/downArrow"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/down_arrow"
-                android:background="@android:color/transparent"
-                android:contentDescription="@string/down_arrow"
-                android:padding="8dp"/>
-
-            <ImageView
-                android:id="@+id/previewIcon"
-                android:layout_width="50dp"
-                android:layout_height="50dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/preview_icon"
-                android:background="@android:color/transparent"
-                android:contentDescription="@string/preview"
-                android:padding="8dp"
-                android:visibility="gone"/>
-
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:visibility="gone">
-
-            <ImageView
-                android:id="@+id/checkMarkIcon"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/ic_check"
-                android:background="@android:color/transparent"
-                android:contentDescription="@string/checked_file_icon"
-                android:padding="8dp"/>
-
-            <TextView
-                android:id="@+id/taskDetailsTextView"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textSize="14sp"
-                android:padding="10dp" />
-        </LinearLayout>
-
-    </LinearLayout>
-
-    -->
