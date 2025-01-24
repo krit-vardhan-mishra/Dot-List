@@ -1,11 +1,10 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
 }
 
 android {
     namespace 'com.just_for_fun.dotlist'
-    compileSdk 35
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.just_for_fun.dotlist"
@@ -27,17 +26,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = '11'
-    }
 }
 
 dependencies {
 
-    implementation 'com.github.bumptech.glide:glide:4.12.0'
-    implementation libs.core.ktx
-    implementation libs.espresso.core
-    annotationProcessor 'com.github.bumptech.glide:compiler:4.12.0'
+    implementation libs.glide
+    annotationProcessor libs.compiler
     implementation libs.appcompat.v161
     implementation libs.material.v190
     implementation libs.core.splashscreen
@@ -45,4 +39,5 @@ dependencies {
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+    implementation libs.gson
 }

@@ -27,14 +27,15 @@
                 android:id="@+id/taskCheckbox"
                 android:layout_width="48dp"
                 android:layout_height="50dp"
-                app:layout_constraintBottom_toBottomOf="parent" />
+                app:layout_constraintBottom_toBottomOf="parent"
+                tools:layout_editor_absoluteX="0dp" />
 
             <EditText
                 android:id="@+id/taskEditText"
                 android:layout_width="301dp"
                 android:layout_height="50dp"
                 android:layout_weight="1"
-                android:hint="@string/enter_your_task"
+                android:hint="Enter Your Task"
                 android:inputType="text"
                 android:maxLines="70"
                 android:minLines="5"
@@ -83,7 +84,7 @@
                 android:id="@+id/notesArea"
                 android:layout_width="384dp"
                 android:layout_height="109dp"
-                android:hint="@string/write_your_notes"
+                android:hint="Write Your Notes"
                 android:inputType="textMultiLine"
                 android:maxLines="10"
                 android:minLines="5"
