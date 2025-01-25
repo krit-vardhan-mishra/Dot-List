@@ -15,7 +15,7 @@
         android:layout_height="wrap_content" >
 
         <!--    Input Section    -->
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <LinearLayout
             android:id="@+id/input_content"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -27,8 +27,7 @@
                 android:id="@+id/taskCheckbox"
                 android:layout_width="48dp"
                 android:layout_height="50dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                tools:layout_editor_absoluteX="0dp" />
+                app:layout_constraintBottom_toBottomOf="parent" />
 
             <EditText
                 android:id="@+id/taskEditText"
@@ -43,8 +42,7 @@
                 android:padding="8dp"
                 android:scrollbars="vertical"
                 app:layout_constraintEnd_toStartOf="@id/down_arrow"
-                app:layout_constraintStart_toEndOf="@+id/taskCheckbox"
-                tools:layout_editor_absoluteY="0dp" />
+                app:layout_constraintStart_toEndOf="@+id/taskCheckbox" />
 
             <ImageButton
                 android:id="@+id/down_arrow"
@@ -62,6 +60,7 @@
                 android:id="@+id/up_arrow"
                 android:layout_width="46dp"
                 android:layout_height="50dp"
+                android:visibility="gone"
                 android:backgroundTint="@color/transparent"
                 android:src="@drawable/up_arrow"
                 app:layout_constraintBottom_toBottomOf="parent"
@@ -70,7 +69,7 @@
                 app:layout_constraintStart_toEndOf="@+id/taskEditText"
                 app:layout_constraintTop_toTopOf="@id/input_content"/>
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
 
         <!--    Notes Section    -->
         <androidx.constraintlayout.widget.ConstraintLayout

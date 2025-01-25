@@ -152,4 +152,6 @@
     <color name="medium_blue">#0000CD</color>
     <color name="dark_blue">#00008B</color>
     <color name="navy">#000080</color>
+    <color name="end_strip">#0A212A</color>
+    <color name="start_strip">#091D23</color>
 </resources>

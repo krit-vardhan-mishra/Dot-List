@@ -14,6 +14,7 @@ material = "1.12.0"
 materialVersion = "1.9.0"
 constraintlayout = "2.2.0"
 firebaseCrashlyticsBuildtools = "3.0.2"
+transition = "1.5.1"
 
 [libraries]
 android-pdf-viewer = { module = "com.github.barteksc:android-pdf-viewer", version.ref = "androidPdfViewer" }
@@ -31,6 +32,7 @@ material = { group = "com.google.android.material", name = "material", version.r
 material-v190 = { module = "com.google.android.material:material", version.ref = "materialVersion" }
 constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 firebase-crashlytics-buildtools = { group = "com.google.firebase", name = "firebase-crashlytics-buildtools", version.ref = "firebaseCrashlyticsBuildtools" }
+transition = { module = "androidx.transition:transition", version.ref = "transition" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -7,4 +7,48 @@
     <string name="upload">Upload</string>
     <string name="checked_file_icon">File attached successfully</string>
     <string name="preview">Preview File</string>
+    <string name="down_arrow">Down Arrow</string>
+    <string name="image_preview">Splash Screen</string>
+    <string name="add_notes">Add Your Notes Here…</string>
+
+    <!-- Delete Task Dialog -->
+    <string name="delete_task_title">Delete Task</string>
+    <string name="delete_task_confirmation">Are you sure?</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+
+    <!-- Text Actions -->
+    <string name="text_copied">Text Copied</string>
+
+    <!-- File Operations -->
+    <string name="preview_unavailable">Preview unavailable</string>
+
+    <!-- Error Messages -->
+    <string name="error_invalid_position">Invalid position</string>
+    <string name="error_clipboard_access">Failed to access clipboard</string>
+
+    <!-- Formatting Actions -->
+    <string name="action_bold">Bold</string>
+    <string name="action_italic">Italic</string>
+    <string name="action_underline">Underline</string>
+
+    <!-- Task Operations -->
+    <string name="task_added">New task added</string>
+    <string name="task_removed">Task removed</string>
+
+    <!-- UI Labels -->
+    <string name="label_upload_file">Upload File</string>
+    <string name="label_delete_file">Delete File</string>
+    <string name="label_preview_file">Preview File</string>
+
+    <string name="action_strikethrough">Strikethrough</string>
+    <string name="action_color">Color</string>
+    <string name="choose_color">Choose Color</string>
+    <string-array name="color_names">
+        <item>Red</item>
+        <item>Green</item>
+        <item>Blue</item>
+        <item>Yellow</item>
+        <item>Black</item>
+    </string-array>
 </resources>
