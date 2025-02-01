@@ -14,7 +14,6 @@ public class Task {
     private Uri fileUri;
     private boolean showDeleteFileBtn;
     private List<NoteFormatting> notesFormatting = new ArrayList<>();
-    private long deletionTime = -1;
 
     public Task() {
         this.title = "";
@@ -30,8 +29,6 @@ public class Task {
     public void setId(long id) { this.id = id; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
-    public long getDeletionTime() { return deletionTime; }
-    public void setDeletionTime(long deletionTime) { this.deletionTime = deletionTime; }
     public boolean isChecked() { return isChecked; }
     public void setChecked(boolean checked) { isChecked = checked; }
     public String getNotes() { return notes; }

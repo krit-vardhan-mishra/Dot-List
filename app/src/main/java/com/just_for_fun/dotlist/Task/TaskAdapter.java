@@ -8,6 +8,8 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.SpannableStringBuilder;
 import android.text.Spanned;
@@ -33,9 +35,9 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.just_for_fun.dotlist.Database.DBHelper;
+import com.just_for_fun.dotlist.Database.DatabaseExecutor;
 import com.just_for_fun.dotlist.MainActivity;
 import com.just_for_fun.dotlist.R;
-import com.just_for_fun.dotlist.Task.TextStyle;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,10 +45,10 @@ import java.util.List;
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
 
     private final List<Task> tasks;
-    private static List<Task> deletedTasks = new ArrayList<>();
     private final OnFileUploadListener fileUploadListener;
     private final OnTaskDeleteListener taskDeleteListener;
     private final DBHelper dbHelper;
+    private final Context context;
 
     public interface OnFileUploadListener {
         void onFileUpload(int position);
@@ -57,11 +59,12 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     }
 
     public TaskAdapter(List<Task> tasks, OnFileUploadListener fileUploadListener,
-                       OnTaskDeleteListener taskDeleteListener, DBHelper dbHelper) {
+                       OnTaskDeleteListener taskDeleteListener, DBHelper dbHelper, Context context) {
         this.tasks = tasks;
         this.fileUploadListener = fileUploadListener;
         this.taskDeleteListener = taskDeleteListener;
         this.dbHelper = dbHelper;
+        this.context = context;
     }
 
     @NonNull
@@ -91,7 +94,7 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         holder.checkBox.setChecked(task.isChecked());
         holder.checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             task.setChecked(isChecked);
-            dbHelper.updateTask(task);
+            DatabaseExecutor.getInstance().execute(() -> dbHelper.updateTask(task));
         });
 
         // Remove existing TextWatcher to avoid duplicates
@@ -127,8 +130,32 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         // Set notes text from the Task object
         holder.notesArea.setText(task.getNotes());
 
-        // Add new TextWatcher for notes
-        holder.notesTextWatcher = new NoteTextWatcher(task);
+        // Replace the existing notesArea TextWatcher with this:
+        holder.notesTextWatcher = new TextWatcher() {
+            private Runnable debounceRunnable;
+            private final Handler handler = new Handler(Looper.getMainLooper());
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // Cancel previous debounce task to avoid multiple updates
+                if (debounceRunnable != null) {
+                    handler.removeCallbacks(debounceRunnable);
+                }
+
+                // Schedule a debounced database update after 500ms
+                debounceRunnable = () -> {
+                    task.setNotes(s.toString());
+                    DatabaseExecutor.getInstance().execute(() -> dbHelper.updateTask(task));
+                };
+                handler.postDelayed(debounceRunnable, 500);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        };
         holder.notesArea.addTextChangedListener(holder.notesTextWatcher);
 
         setupTaskViews(holder, task, position);
@@ -195,8 +222,13 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         holder.notesArea.setHorizontallyScrolling(false);
         holder.notesArea.setImeOptions(EditorInfo.IME_FLAG_NO_EXTRACT_UI);
         holder.notesArea.setText(task.getNotes(), TextView.BufferType.SPANNABLE);
+
+        // Ensure the text is visible when the task is expanded
+        if (task.isExpanded()) {
+            holder.notesLayout.setVisibility(View.VISIBLE);
+            holder.notesArea.requestFocus();
+        }
     }
-    // endregion
 
     // region Text Formatting
     private void setupTextFormatting(TaskViewHolder holder, Task task) {
@@ -235,27 +267,12 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         }
     }
 
-    private void applyFormatSpan(SpannableStringBuilder builder, NoteFormatting format) {
-        switch (format.getStyle()) {
-            case BOLD:
-                builder.setSpan(new StyleSpan(Typeface.BOLD), format.getStart(), format.getEnd(),
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                break;
-            case ITALIC:
-                builder.setSpan(new StyleSpan(ITALIC), format.getStart(), format.getEnd(),
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                break;
-            case UNDERLINE:
-                builder.setSpan(new UnderlineSpan(), format.getStart(), format.getEnd(),
-                        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                break;
-        }
-    }
-    // endregion
-
     // region File Operations
     private void handleFileUpload(Task task, int position) {
+        String currentNotes = task.getNotes();
         task.setExpanded(true);
+        task.setNotes(currentNotes);
+        dbHelper.updateTask(task);
         fileUploadListener.onFileUpload(position);
     }
 
@@ -276,8 +293,9 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
 
     private void handleFileDelete(Task task, int position) {
         task.setFileUri(null);
-        task.setShowDeleteFileBtn(false);
         task.setExpanded(true);
+        task.setShowDeleteFileBtn(false);
+        dbHelper.updateTask(task);
         notifyItemChanged(position);
     }
     // endregion
@@ -304,16 +322,10 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     private void deleteTask(int position) {
         if (position == RecyclerView.NO_POSITION) return;
         Task task = tasks.get(position);
-        task.setDeletionTime(System.currentTimeMillis());
-        dbHelper.updateTask(task);
-        deletedTasks.add(task);
+        dbHelper.deleteTaskPermanently(task.getId());
         tasks.remove(position);
         notifyItemRemoved(position);
         notifyItemRangeChanged(position, tasks.size() - position);
-    }
-
-    public static List<Task> getDeletedTasks() {
-        return deletedTasks;
     }
 
     @Override
@@ -322,11 +334,16 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
     }
 
     public void addNewTask() {
-        Task newTask = new Task();
-        long id = dbHelper.addTask(newTask);
-        newTask.setId(id);
-        tasks.add(newTask);
-        notifyItemInserted(tasks.size() - 1);
+        DatabaseExecutor.getInstance().execute(() -> {
+            Task newTask = new Task();
+            long id = dbHelper.addTask(newTask);
+            newTask.setId(id);
+            // Use the adapter's context to run on UI thread
+            ((MainActivity) context).runOnUiThread(() -> {
+                tasks.add(newTask);
+                notifyItemInserted(tasks.size() - 1);
+            });
+        });
     }
 
     // region ViewHolder

@@ -11,11 +11,10 @@ import com.just_for_fun.dotlist.Task.Task;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class DBHelper extends SQLiteOpenHelper {
     private static final String DATABASE_NAME = "tasks.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
 
     private static final String TABLE_TASKS = "tasks";
     private static final String COLUMN_ID = "id";
@@ -23,7 +22,8 @@ public class DBHelper extends SQLiteOpenHelper {
     private static final String COLUMN_CHECKED = "checked";
     private static final String COLUMN_NOTES = "notes";
     private static final String COLUMN_FILE_URI = "file_uri";
-    private static final String COLUMN_DELETION_TIME = "deletion_time";
+
+    private static final String COLUMN_CREATED_TIME = "created_time";
 
     public DBHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -37,7 +37,7 @@ public class DBHelper extends SQLiteOpenHelper {
                 COLUMN_CHECKED + " INTEGER DEFAULT 0, " +
                 COLUMN_NOTES + " TEXT, " +
                 COLUMN_FILE_URI + " TEXT, " +
-                COLUMN_DELETION_TIME + " INTEGER DEFAULT -1)";
+                COLUMN_CREATED_TIME + " INTEGER DEFAULT (strftime('%s','now')))";
         db.execSQL(createTable);
     }
 
@@ -54,7 +54,6 @@ public class DBHelper extends SQLiteOpenHelper {
         values.put(COLUMN_CHECKED, task.isChecked() ? 1 : 0);
         values.put(COLUMN_NOTES, task.getNotes());
         values.put(COLUMN_FILE_URI, task.getFileUri() != null ? task.getFileUri().toString() : null);
-        values.put(COLUMN_DELETION_TIME, task.getDeletionTime());
 
         long id = db.insert(TABLE_TASKS, null, values);
         task.setId(id);
@@ -65,21 +64,51 @@ public class DBHelper extends SQLiteOpenHelper {
     public List<Task> getAllTasks() {
         List<Task> taskList = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.query(TABLE_TASKS, null, COLUMN_DELETION_TIME + " = ?", new String[]{"-1"}, null, null, null);
+
+        // Query without COLUMN_DELETION_TIME
+        Cursor cursor = db.query(
+                TABLE_TASKS, // Table name
+                null,        // Columns (null means all columns)
+                null,        // Selection (no condition)
+                null,        // Selection arguments
+                null,        // Group by
+                null,        // Having
+                COLUMN_CREATED_TIME + " DESC" // Order by
+        );
 
         if (cursor.moveToFirst()) {
             do {
                 Task task = new Task();
-                task.setId(cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID)));
-                task.setTitle(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)));
-                task.setChecked(cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_CHECKED)) == 1);
-                task.setNotes(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_NOTES)));
-                String uriString = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_FILE_URI));
-                task.setFileUri(uriString != null ? Uri.parse(uriString) : null);
-                task.setDeletionTime(cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_DELETION_TIME)));
+
+                // Safely get column indices
+                int idIndex = cursor.getColumnIndex(COLUMN_ID);
+                int titleIndex = cursor.getColumnIndex(COLUMN_TITLE);
+                int checkedIndex = cursor.getColumnIndex(COLUMN_CHECKED);
+                int notesIndex = cursor.getColumnIndex(COLUMN_NOTES);
+                int fileUriIndex = cursor.getColumnIndex(COLUMN_FILE_URI);
+
+                // Set task properties only if the column exists
+                if (idIndex != -1) {
+                    task.setId(cursor.getLong(idIndex));
+                }
+                if (titleIndex != -1) {
+                    task.setTitle(cursor.getString(titleIndex));
+                }
+                if (checkedIndex != -1) {
+                    task.setChecked(cursor.getInt(checkedIndex) == 1);
+                }
+                if (notesIndex != -1) {
+                    task.setNotes(cursor.getString(notesIndex));
+                }
+                if (fileUriIndex != -1) {
+                    String uriString = cursor.getString(fileUriIndex);
+                    task.setFileUri(uriString != null ? Uri.parse(uriString) : null);
+                }
+
                 taskList.add(task);
             } while (cursor.moveToNext());
         }
+
         cursor.close();
         db.close();
         return taskList;
@@ -92,7 +121,6 @@ public class DBHelper extends SQLiteOpenHelper {
         values.put(COLUMN_CHECKED, task.isChecked() ? 1 : 0);
         values.put(COLUMN_NOTES, task.getNotes());
         values.put(COLUMN_FILE_URI, task.getFileUri() != null ? task.getFileUri().toString() : null);
-        values.put(COLUMN_DELETION_TIME, task.getDeletionTime());
 
         return db.update(TABLE_TASKS, values, COLUMN_ID + " = ?",
                 new String[]{String.valueOf(task.getId())});
@@ -104,26 +132,4 @@ public class DBHelper extends SQLiteOpenHelper {
         db.close();
     }
 
-    public List<Task> getDeletedTasks() {
-        List<Task> taskList = new ArrayList<>();
-        SQLiteDatabase db = this.getReadableDatabase();
-        long thirtyDaysAgo = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(30);
-        String selection = COLUMN_DELETION_TIME + " > ? AND " + COLUMN_DELETION_TIME + " != ?";
-        String[] selectionArgs = {String.valueOf(thirtyDaysAgo), "-1"};
-
-        Cursor cursor = db.query(TABLE_TASKS, null, selection, selectionArgs, null, null, null);
-        if (cursor.moveToFirst()) {
-            do {
-                Task task = new Task();
-                task.setId(cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_ID)));
-                task.setTitle(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE)));
-                task.setNotes(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_NOTES)));
-                task.setDeletionTime(cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_DELETION_TIME)));
-                taskList.add(task);
-            } while (cursor.moveToNext());
-        }
-        cursor.close();
-        db.close();
-        return taskList;
-    }
 }

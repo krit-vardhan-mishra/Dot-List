@@ -29,4 +29,8 @@
     <external-path
         name="downloads"
         path="Download/" />
+
+    <external-files-path
+        name="files"
+        path="." />
 </paths>
