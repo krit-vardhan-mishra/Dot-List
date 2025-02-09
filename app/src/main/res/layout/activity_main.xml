@@ -55,6 +55,7 @@
         android:layout_height="wrap_content"
         android:clickable="true"
         android:contentDescription="Add_Button"
+        android:layout_margin="10dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@android:drawable/ic_input_add" />

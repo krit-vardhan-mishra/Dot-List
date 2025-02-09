@@ -18,7 +18,7 @@ class TaskRepository(private val taskDao: TaskDao, private val formattingDao: No
     suspend fun getFormattingForTask(taskId: Long): List<NoteFormattingEntity> {
         return formattingDao.getFormattingForTask(taskId)
     }
-    suspend fun insertNoteFormatting(formatting: NoteFormattingEntity): Long {
+    suspend fun insertFormatting(formatting: NoteFormattingEntity): Long {
         return formattingDao.insertFormatting(formatting)
     }
     suspend fun deleteFormattingInRange(taskId: Long, selStart: Int, selEnd: Int) {

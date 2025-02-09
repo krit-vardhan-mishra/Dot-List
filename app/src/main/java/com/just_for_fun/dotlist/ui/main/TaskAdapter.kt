@@ -33,8 +33,8 @@ import com.just_for_fun.dotlist.R
 import com.just_for_fun.dotlist.data.local.entities.NoteFormattingEntity
 import com.just_for_fun.dotlist.data.local.entities.Task
 import com.just_for_fun.dotlist.domain.models.TextStyle
+import com.just_for_fun.dotlist.ui.viewmodel.TaskViewModel
 import com.just_for_fun.dotlist.utils.ToastUtil
-import com.just_for_fun.taskview.TaskDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -43,8 +43,8 @@ import kotlinx.coroutines.withContext
 
 class TaskAdapter(
     private val context: Context,
-    private val taskDatabase: TaskDatabase,
     private val lifecycleScope: LifecycleCoroutineScope,
+    private val taskViewModel: TaskViewModel,
     private val onFilePickerLauncher: (taskId: Task) -> Unit
 ) : ListAdapter<Task, TaskAdapter.TaskViewHolder>(DiffCallBack()) {
 
@@ -141,7 +141,7 @@ class TaskAdapter(
 
         private fun loadTaskDataIntoViews(task: Task) {
             lifecycleScope.launch(Dispatchers.IO) {
-                val formattingList = taskDatabase.getFormattingForTask(task.id)
+                val formattingList = taskViewModel.getFormattingForTask(task.id)
                 val spannable = applyFormattingToText(task.notes, formattingList)
 
                 withContext(Dispatchers.Main) {
@@ -192,7 +192,7 @@ class TaskAdapter(
                     delay(2000)
                     currentTask?.let {
                         val updatedTask = it.copy(title = s.toString())
-                        taskDatabase.updateTask(updatedTask)
+                        taskViewModel.updateTask(updatedTask)
                     }
                 }
             }
@@ -207,7 +207,7 @@ class TaskAdapter(
                     delay(2000)
                     currentTask?.let {
                         val updatedTask = it.copy(notes = s.toString())
-                        taskDatabase.updateTask(updatedTask)
+                        taskViewModel.updateTask(updatedTask)
                     }
                 }
             }
@@ -218,7 +218,7 @@ class TaskAdapter(
                 currentTask?.let {
                     val updatedTask = it.copy(isChecked = isChecked)
                     lifecycleScope.launch {
-                        taskDatabase.updateTask(updatedTask)
+                        taskViewModel.updateTask(updatedTask)
                     }
                 }
             }
@@ -246,7 +246,7 @@ class TaskAdapter(
 
             val taskToDelete = getItem(position)
             lifecycleScope.launch {
-                taskDatabase.deleteTask(taskToDelete)
+                taskViewModel.deleteTask(taskToDelete)
                 val updatedList = currentList.toMutableList().apply {
                     removeAt(position)
                 }
@@ -297,7 +297,7 @@ class TaskAdapter(
                 currentTask?.let { task ->
                     val updatedTask = task.copy(attachment = null)
                     lifecycleScope.launch {
-                        taskDatabase.updateTask(updatedTask)
+                        taskViewModel.updateTask(updatedTask)
                         withContext(Dispatchers.Main) {
                             updateAttachmentButtonsVisibility(null)
                         }
@@ -400,7 +400,7 @@ class TaskAdapter(
                     color = color
                 )
                 lifecycleScope.launch {
-                    taskDatabase.insertNoteFormatting(formatting)
+                    taskViewModel.insertNoteFormatting(formatting)
                 }
             }
         }
@@ -486,7 +486,7 @@ class TaskAdapter(
 
             currentTask?.let { task ->
                 lifecycleScope.launch {
-                    taskDatabase.deleteFormattingInRange(task.id, selStart, selEnd)
+                    taskViewModel.deleteFormattingInRange(task.id, selStart, selEnd)
                 }
             }
         }

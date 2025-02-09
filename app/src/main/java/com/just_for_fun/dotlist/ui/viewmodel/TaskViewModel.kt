@@ -5,14 +5,14 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.MutableLiveData
 import com.just_for_fun.dotlist.data.local.entities.NoteFormattingEntity
 import com.just_for_fun.dotlist.data.local.entities.Task
-import com.just_for_fun.taskview.TaskDatabase
+import com.just_for_fun.dotlist.data.repository.TaskRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 
-class TaskViewModel(private val taskDatabase: TaskDatabase) : ViewModel() {
+class TaskViewModel(private val repository: TaskRepository) : ViewModel() {
 
-    val allTasks: LiveData<List<Task>> = taskDatabase.getAllTask().asLiveData()
+    val allTasks: LiveData<List<Task>> = repository.getAllTasks().asLiveData()
     private val _taskLiveData = MutableLiveData<Task?>()
     val taskLiveData: LiveData<Task?> get() = _taskLiveData
 
@@ -21,7 +21,7 @@ class TaskViewModel(private val taskDatabase: TaskDatabase) : ViewModel() {
 
     fun loadTask(taskId: Long) {
         viewModelScope.launch {
-            taskDatabase.getTaskById(taskId)
+            repository.getTaskById(taskId)
                 .flowOn(Dispatchers.IO)
                 .collect {task ->
                     _taskLiveData.postValue(task)
@@ -29,17 +29,35 @@ class TaskViewModel(private val taskDatabase: TaskDatabase) : ViewModel() {
         }
     }
 
-    fun loadFormatting(taskId: Long) {
+    suspend fun insertTask(task: Task): Long = repository.insertTask(task)
+
+    fun addTask(task: Task) {
         viewModelScope.launch(Dispatchers.IO) {
-            val formatting = taskDatabase.getFormattingForTask(taskId)
-            _formattingLiveData.postValue(formatting)
+            repository.insertTask(task)
         }
     }
 
-    fun addFormatting(taskId: Long, formatting: NoteFormattingEntity) {
+    fun updateTask(task: Task) {
         viewModelScope.launch(Dispatchers.IO) {
-            val id = taskDatabase.insertNoteFormatting(formatting)
-            loadFormatting(taskId)
+            repository.updateTask(task)
         }
+    }
+
+    fun deleteTask(task: Task) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteTask(task)
+        }
+    }
+
+    suspend fun deleteFormattingInRange(id: Long, selStart: Int, selEnd: Int) {
+        repository.deleteFormattingInRange(id, selStart, selEnd)
+    }
+
+    suspend fun insertNoteFormatting(formatting: NoteFormattingEntity): Long {
+        return repository.insertFormatting(formatting)
+    }
+
+    suspend fun getFormattingForTask(taskId: Long): List<NoteFormattingEntity> {
+        return repository.getFormattingForTask(taskId)
     }
 }

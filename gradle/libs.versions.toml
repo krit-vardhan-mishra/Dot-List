@@ -6,12 +6,14 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.7.0"
 material = "1.12.0"
+roomCompiler = "2.5.0"
 roomRuntime = "2.6.1"
 lifecycleViewmodelKtx = "2.7.0"
 uiAndroid = "1.7.7"
 filamentAndroid = "1.17.1"
 
 [libraries]
+androidx-room-compiler-v250 = { module = "androidx.room:room-compiler", version.ref = "roomCompiler" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "roomRuntime" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "roomRuntime" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "roomRuntime" }
@@ -27,5 +29,3 @@ filament-android = { group = "com.google.ar.sceneform", name = "filament-android
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-kapt = { id = "org.jetbrains.kotlin.kapt" }
-
-

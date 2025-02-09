@@ -12,20 +12,22 @@ import androidx.appcompat.app.AppCompatActivity
 import android.Manifest
 import android.provider.Settings
 import android.util.Log
-import android.view.View
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.just_for_fun.dotlist.data.local.entities.Task
 import com.just_for_fun.dotlist.ui.main.TaskAdapter
 import com.just_for_fun.dotlist.ui.viewmodel.TaskViewModel
 import com.just_for_fun.dotlist.ui.viewmodel.TaskViewModelFactory
 import com.just_for_fun.dotlist.utils.ToastUtil
-import com.just_for_fun.taskview.TaskDatabase
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import android.view.View
+import com.just_for_fun.dotlist.data.local.AppDatabase
+import com.just_for_fun.dotlist.data.repository.TaskRepository
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -36,7 +38,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var emptyTextView: View
     private lateinit var taskAdapter: TaskAdapter
-    private lateinit var taskDatabase: TaskDatabase
     private lateinit var filePickerLauncher: ActivityResultLauncher<Array<String>>
     private var currentPickerTask: Task? = null
     private lateinit var taskViewModel: TaskViewModel
@@ -45,8 +46,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        taskDatabase = TaskDatabase(this)
-        taskViewModel = ViewModelProvider(this, TaskViewModelFactory(taskDatabase))[TaskViewModel::class.java]
+        val database = AppDatabase.getDatabase(this)
+        val repository = TaskRepository(database.taskDao(), database.noteFormattingDao())
+        taskViewModel = ViewModelProvider(this, TaskViewModelFactory(repository))[TaskViewModel::class.java]
         recyclerView = findViewById(R.id.recycler_view)
         emptyTextView = findViewById(R.id.emptyTextView)
 
@@ -71,8 +73,8 @@ class MainActivity : AppCompatActivity() {
         recyclerView.layoutManager = LinearLayoutManager(this)
         taskAdapter = TaskAdapter(
             context = this,
-            taskDatabase = taskDatabase,
             lifecycleScope = lifecycleScope,
+            taskViewModel = taskViewModel,
             onFilePickerLauncher = { task ->
                 currentPickerTask = task
                 filePickerLauncher.launch(arrayOf("*/*"))
@@ -85,15 +87,20 @@ class MainActivity : AppCompatActivity() {
         findViewById<FloatingActionButton>(R.id.floatingActionButton).setOnClickListener {
             lifecycleScope.launch {
                 val newTask = Task(id = 0, title = "", notes = "", isChecked = false, attachment = null)
-                taskDatabase.insertTask(newTask)
+                taskViewModel.insertTask(newTask)
             }
         }
     }
 
     private fun observeTasks() {
-        lifecycleScope.launch {
-            taskDatabase.getAllTask().collect { tasks ->
-                taskAdapter.submitList(tasks)
+        taskViewModel.allTasks.observe(this) { tasks ->
+            taskAdapter.submitList(tasks)
+            if (tasks.isEmpty()) {
+                recyclerView.visibility = View.GONE
+                emptyTextView.visibility = View.VISIBLE
+            } else {
+                recyclerView.visibility = View.VISIBLE
+                emptyTextView.visibility = View.GONE
             }
         }
     }
@@ -113,7 +120,7 @@ class MainActivity : AppCompatActivity() {
 
                         val updatedTask = currentPickerTask?.copy(attachment = uri.toString())
                         if (updatedTask != null) {
-                            taskDatabase.updateTask(updatedTask)
+                            taskViewModel.updateTask(updatedTask)
                             openDialogBox()
                         }
                     } catch (e: SecurityException) {
@@ -182,8 +189,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }
 
-                if (!deniedPermissions.isEmpty()) {
-                    // Some permissions were denied
+                if (deniedPermissions.isNotEmpty()) {
                     var message = "Required permissions not granted: "
 
                     // Create user-friendly permission names
