@@ -27,10 +27,16 @@ android {
             )
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    buildFeatures {
+        dataBinding = true
+    }
+
     kotlinOptions {
         jvmTarget = "11"
     }

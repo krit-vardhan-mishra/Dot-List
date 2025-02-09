@@ -17,7 +17,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Dot List"
+            android:text="@string/dot_list"
             android:textSize="@dimen/_50ssp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -54,10 +54,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:clickable="true"
-        android:contentDescription="Add_Button"
-        android:layout_margin="10dp"
+        android:contentDescription="@string/fab_des"
+        android:layout_margin="@dimen/_10sdp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        android:backgroundTint="@color/orange"
         app:srcCompat="@android:drawable/ic_input_add" />
 
 

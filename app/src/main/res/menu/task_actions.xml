@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/action_bold" android:title="Bold"/>
-    <item android:id="@+id/action_italic" android:title="Italic"/>
-    <item android:id="@+id/action_underline" android:title="Underline"/>
-    <item android:id="@+id/action_strikethrough" android:title="Strikethrough"/>
-    <item android:id="@+id/action_color" android:title="Color"/>
-    <item android:id="@+id/action_normal" android:title="Normal"/>
+    <item android:id="@+id/action_bold" android:title="@string/bold"/>
+    <item android:id="@+id/action_italic" android:title="@string/action_italic"/>
+    <item android:id="@+id/action_underline" android:title="@string/underline"/>
+    <item android:id="@+id/action_strikethrough" android:title="@string/strikethrough"/>
+    <item android:id="@+id/action_color" android:title="@string/color"/>
+    <item android:id="@+id/action_normal" android:title="@string/normal"/>
 </menu>

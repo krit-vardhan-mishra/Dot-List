@@ -10,6 +10,11 @@
     <string name="down_arrow">Down Arrow</string>
     <string name="image_preview">Splash Screen</string>
     <string name="add_notes">Add Your Notes Here…</string>
+    <string name="down_des">Expand Task Button.</string>
+    <string name="up_des">Collapse Task Button.</string>
+    <string name="upload_des">Upload Icon</string>
+    <string name="delete_des">Delete Icon</string>
+    <string name="preview_des">Preview Icon</string>
 
     <!-- Delete Task Dialog -->
     <string name="delete_task_title">Delete Task</string>
@@ -17,6 +22,7 @@
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
     <string name="empty_task">No Task at the current time, \nplease click on the <bold>Add Button</bold> on the bottom right corner.</string>
+    <string name="fab_des">Add_Button</string>
 
     <!-- Text Actions -->
     <string name="text_copied">Text Copied</string>
@@ -52,4 +58,11 @@
         <item>Yellow</item>
         <item>Black</item>
     </string-array>
+
+    <string name="bold">Bold</string>
+    <style name="italic">Italic</style>
+    <string name="underline">Underline</string>
+    <string name="strikethrough">Strikethrough</string>
+    <string name="color">Color</string>
+    <string name="normal">Normal</string>
 </resources>

@@ -30,7 +30,7 @@
                 android:layout_width="0dp"
                 android:layout_height="@dimen/_50sdp"
                 android:layout_weight="1"
-                android:hint="Enter Your Task"
+                android:hint="@string/pre_written_text"
                 android:inputType="text"
                 android:maxLines="1"
                 android:padding="@dimen/_8sdp"
@@ -42,7 +42,7 @@
                 android:layout_height="@dimen/_50sdp"
                 android:backgroundTint="@color/transparent"
                 android:src="@drawable/down_arrow"
-                android:contentDescription="Expand task."/>
+                android:contentDescription="@string/down_des"/>
 
             <ImageButton
                 android:id="@+id/up_arrow"
@@ -51,7 +51,7 @@
                 android:visibility="gone"
                 android:backgroundTint="@color/transparent"
                 android:src="@drawable/up_arrow"
-                android:contentDescription="Collapse task."/>
+                android:contentDescription="@string/up_des"/>
 
         </LinearLayout>
 
@@ -95,7 +95,7 @@
                     android:layout_height="@dimen/_48sdp"
                     android:background="@android:color/transparent"
                     android:src="@drawable/upload_icon"
-                    android:contentDescription="Upload Attachment"/>
+                    android:contentDescription="@string/upload_des"/>
 
                 <ImageButton
                     android:id="@+id/deleteButton"
@@ -104,7 +104,7 @@
                     android:background="@android:color/transparent"
                     android:src="@drawable/delete_icon"
                     android:visibility="gone"
-                    android:contentDescription="Delete Attachment"/>
+                    android:contentDescription="@string/delete_des"/>
 
                 <ImageButton
                     android:id="@+id/previewButton"
@@ -113,7 +113,7 @@
                     android:background="@android:color/transparent"
                     android:src="@drawable/preview_icon"
                     android:visibility="gone"
-                    android:contentDescription="Preview Attachment"/>
+                    android:contentDescription="@string/preview_des"/>
 
             </LinearLayout>
 
