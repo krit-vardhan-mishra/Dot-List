@@ -26,6 +26,7 @@ import android.view.animation.AnimationUtils
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageButton
+import androidx.core.view.isVisible
 import androidx.lifecycle.LifecycleCoroutineScope
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
@@ -282,7 +283,6 @@ class TaskAdapter(
                 currentTask?.let { task -> onFilePickerLauncher(task) }
             }
 
-
             previewButton.setOnClickListener {
                 currentTask?.attachment?.let { uri ->
                     openFilePreview(uri)
@@ -290,7 +290,11 @@ class TaskAdapter(
             }
 
             previewButton.setOnLongClickListener {
-                deleteButton.visibility = View.VISIBLE
+                deleteButton.visibility = if (deleteButton.visibility == View.VISIBLE) {
+                    View.GONE
+                } else {
+                    View.VISIBLE
+                }
                 true
             }
 
