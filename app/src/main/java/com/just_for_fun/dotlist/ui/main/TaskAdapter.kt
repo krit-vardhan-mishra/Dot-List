@@ -264,7 +264,7 @@ class TaskAdapter(
                         updateVisibilityState(true)
                     }
                 } else {
-                    ToastUtil.showCustomToast(context, "Please enter a task title first.", 2)
+                    ToastUtil.showCustomToast(context, "Please enter a task title first.")
                 }
             }
 
@@ -303,7 +303,7 @@ class TaskAdapter(
                         }
                     }
                 }
-                ToastUtil.showCustomToast(context, "Task Attachment Deleted.", 2)
+                ToastUtil.showCustomToast(context, "Task Attachment Deleted.", 2, RED)
             }
         }
 

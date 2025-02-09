@@ -2,7 +2,7 @@
     android:id="@+id/toast_root"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:padding="10dp"
+    android:padding="@dimen/_10sdp"
     android:background="@drawable/custom_toast_bg"
     android:orientation="horizontal">
 
@@ -10,6 +10,6 @@
         android:id="@+id/toast_message"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="16sp"
-        android:padding="5dp"/>
+        android:textSize="@dimen/_16ssp"
+        android:padding="@dimen/_5sdp"/>
 </LinearLayout>

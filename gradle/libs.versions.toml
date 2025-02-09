@@ -9,6 +9,8 @@ material = "1.12.0"
 roomCompiler = "2.5.0"
 roomRuntime = "2.6.1"
 lifecycleViewmodelKtx = "2.7.0"
+sdpAndroid = "1.1.1"
+sspAndroid = "1.1.1"
 uiAndroid = "1.7.7"
 filamentAndroid = "1.17.1"
 
@@ -24,6 +26,8 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-ui-android = { group = "androidx.compose.ui", name = "ui-android", version.ref = "uiAndroid" }
 filament-android = { group = "com.google.ar.sceneform", name = "filament-android", version.ref = "filamentAndroid" }
+sdp-android = { module = "com.intuit.sdp:sdp-android", version.ref = "sdpAndroid" }
+ssp-android = { module = "com.intuit.ssp:ssp-android", version.ref = "sspAndroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

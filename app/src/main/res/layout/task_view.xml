@@ -6,7 +6,7 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:layout_gravity="center"
-    android:layout_marginBottom="16dp">
+    android:layout_marginBottom="@dimen/_16sdp">
 
     <LinearLayout android:id="@+id/main_content"
         android:orientation="vertical"
@@ -22,32 +22,32 @@
 
             <CheckBox
                 android:id="@+id/taskCheckbox"
-                android:layout_width="48dp"
-                android:layout_height="50dp"/>
+                android:layout_width="@dimen/_48sdp"
+                android:layout_height="@dimen/_50sdp"/>
 
             <EditText
                 android:id="@+id/taskEditText"
                 android:layout_width="0dp"
-                android:layout_height="50dp"
+                android:layout_height="@dimen/_50sdp"
                 android:layout_weight="1"
                 android:hint="Enter Your Task"
                 android:inputType="text"
                 android:maxLines="1"
-                android:padding="8dp"
+                android:padding="@dimen/_8sdp"
                 android:scrollbars="vertical"/>
 
             <ImageButton
                 android:id="@+id/down_arrow"
-                android:layout_width="46dp"
-                android:layout_height="50dp"
+                android:layout_width="@dimen/_46sdp"
+                android:layout_height="@dimen/_50sdp"
                 android:backgroundTint="@color/transparent"
                 android:src="@drawable/down_arrow"
                 android:contentDescription="Expand task."/>
 
             <ImageButton
                 android:id="@+id/up_arrow"
-                android:layout_width="46dp"
-                android:layout_height="50dp"
+                android:layout_width="@dimen/_46sdp"
+                android:layout_height="@dimen/_50sdp"
                 android:visibility="gone"
                 android:backgroundTint="@color/transparent"
                 android:src="@drawable/up_arrow"
@@ -60,7 +60,7 @@
             android:id="@+id/notesLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="8dp">
+            android:padding="@dimen/_8sdp">
 
             <EditText
                 android:id="@+id/notesArea"
@@ -71,7 +71,7 @@
                 android:inputType="textMultiLine"
                 android:maxLines="10"
                 android:minLines="5"
-                android:padding="8dp"
+                android:padding="@dimen/_8sdp"
                 android:scrollbars="vertical"
                 android:textIsSelectable="true"
                 android:focusable="true"
@@ -91,16 +91,16 @@
 
                 <ImageButton
                     android:id="@+id/uploadButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="@dimen/_48sdp"
+                    android:layout_height="@dimen/_48sdp"
                     android:background="@android:color/transparent"
                     android:src="@drawable/upload_icon"
                     android:contentDescription="Upload Attachment"/>
 
                 <ImageButton
                     android:id="@+id/deleteButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="@dimen/_48sdp"
+                    android:layout_height="@dimen/_48sdp"
                     android:background="@android:color/transparent"
                     android:src="@drawable/delete_icon"
                     android:visibility="gone"
@@ -108,8 +108,8 @@
 
                 <ImageButton
                     android:id="@+id/previewButton"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
+                    android:layout_width="@dimen/_48sdp"
+                    android:layout_height="@dimen/_48sdp"
                     android:background="@android:color/transparent"
                     android:src="@drawable/preview_icon"
                     android:visibility="gone"

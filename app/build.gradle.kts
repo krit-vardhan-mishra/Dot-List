@@ -48,4 +48,8 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Dependency for Responsive App
+    implementation (libs.sdp.android)
+    implementation (libs.ssp.android)
 }
