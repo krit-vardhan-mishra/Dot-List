@@ -16,6 +16,7 @@
     <string name="delete_task_confirmation">Are you sure?</string>
     <string name="delete">Delete</string>
     <string name="cancel">Cancel</string>
+    <string name="empty_task">No Task at the current time, \nplease click on the <bold>Add Button</bold> on the bottom right corner.</string>
 
     <!-- Text Actions -->
     <string name="text_copied">Text Copied</string>
