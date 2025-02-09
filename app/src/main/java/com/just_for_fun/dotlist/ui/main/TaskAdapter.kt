@@ -22,6 +22,7 @@ import android.view.MenuInflater
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AnimationUtils
 import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageButton
@@ -505,5 +506,11 @@ class TaskAdapter(
     override fun onBindViewHolder(holder: TaskViewHolder, position: Int) {
         holder.bind(getItem(position))
         holder.clearPendingJobs()
+        setAnimation(holder.itemView)
+    }
+
+    private fun setAnimation(itemView: View) {
+        val animation = AnimationUtils.loadAnimation(context, R.anim.item_anim)
+        itemView.startAnimation(animation)
     }
 }
