@@ -35,12 +35,12 @@
             android:id="@+id/emptyTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_gravity="center"
             android:text="@string/empty_task"
             android:textColor="@android:color/holo_red_dark"
             android:visibility="gone"
             android:textAlignment="center"
-            android:textSize="@dimen/_15ssp"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:textSize="@dimen/_15ssp" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler_view"
