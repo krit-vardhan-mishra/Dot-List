@@ -67,6 +67,6 @@ To delete Task:
 
 ### **Troubleshooting & Support**  
 For queries and suggestions, feel free to reach out on my social media:  
-📸 **Instagram** → [(https://www.instagram.com/imkritvm/)]  
-💼 **LinkedIn** → [(https://www.linkedin.com/in/kirti-vardhan-mishra-9b0502297)]
+[📸 **Instagram** ](https://www.instagram.com/imkritvm/)
+[💼 **LinkedIn** ](https://www.linkedin.com/in/kirti-vardhan-mishra-9b0502297)
 
